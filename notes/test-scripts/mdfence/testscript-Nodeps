@@ -1,0 +1,9 @@
+#!/usr/bin/env pythonrunscript
+import sys
+
+print("I'm the test script")
+print("I'm the test script's second line")
+print(f"len(sys.argv) = {len(sys.argv)}")
+print(f"sys.argv = {sys.argv}")
+
+    

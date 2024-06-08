@@ -1,0 +1,172 @@
+* Tasks
+** TODO make this pip-installable
+https://python-packaging.readthedocs.io/en/latest/command-line-scripts.html
+** TODO make it work on windows
+use asyncio instead of bash and tee?
+** TODO raise error if conda is needed and missing
+** TODO readme: show cooler examples
+examples that show what you can do:
+
+- single-file notebook server!  
+- demo with axolotl
+- simple webserver
+- use pandas to convert CSV to excel
+- use language model
+- use for PDF extraction
+** TODO ? readme: show example of a requirements.txt that references a dependency by URL
+** TODO ? add flag --install-miniconda flag
+** TODO ? consider making it installable as a brew package
+** TODO develop example with test with advanced conda dependencies
+Try to convert this to a single comment block:
+
+#+begin_src sh
+# create conda env
+conda create -n multistep python=3.10 # higher versions might break vllm
+conda activate multistep
+
+# Linux install cuda and cuda toolkit and pytorch. Good as of 2024-05-14 Tue 15:45
+conda install cuda -c nvidia/label/cuda-12.1.0
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+
+# conda-install conda-packaged dependencies
+conda install openai networkx numpy pandas regex
+
+# pip-install pip-only dependencies
+python3 -m pip install claudette
+python3 -m pip install vllm
+python3 -m pip install datasets
+python3 -m pip install nltk
+#+end_src
+
+** nice-to-have
+** TODO ? add --force-rebuild flag
+** TODO ? provide stats regarding total space used cache
+** TODO ? create a custom GPT readme
+** TODO ? design way to add persistent link in env to originating script
+- could name directory with first script name used
+  - con. hides later scripts
+- could add symlink in the dir back to the script?
+  - but what if different scripts have the same name? add junk to uniqiify?
+** TODO ? add command line option to read Python expressions
+** TODO ? implement inline (workflow for pure-venv case)
+design goal:
+- instead of putting this script in the path, it should also be sufficiently literally to append it to any python script
+issues:
+- overriding existing defintiions of main
+- collisions on globals namespace
+** done
+** DONE update macOS cache dir based on [[https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/MacOSXDirectories/MacOSXDirectories.html#//apple_ref/doc/uid/TP40010672-CH10-SW1][apple file system programming guide]]
+page defining location: [[https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/MacOSXDirectories/MacOSXDirectories.html#//apple_ref/doc/uid/TP40010672-CH10-SW1][macOS Library Directory Details]]
+
+options:
+- $HOME/Library/Caches/python-script/
+- $HOME/Library/Developer/python-script/
+
+* Resources
+
+- https://rust-script.org/
+- https://github.com/mxcl/swift-sh/tree/master/Examples
+- scriptisto (more general, but more opaque)
+
+* Log
+
+** [2024-06-03 Mon 09:28] what format for conda?
+
+Options:
+
+1. embed environment.yml
+   - works with -n if environment.yml does not specify the env name!
+   - works with -prefix if environment.yml does not specify the env name!
+
+     
+3. embed whatever format =conda install --file= expects
+   - that format is also what =conda install= expectsspecification?apparently yes.
+   - that format is the [[https://conda.io/projects/conda/en/latest/user-guide/concepts/pkg-search.html][install specification]] 
+
+[[https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html][conda install docs]] note that with --file conda intsll will "Read package versions from the given file."
+
+** [2024-06-06 Thu 19:03]
+
+packaging
+
+https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#writing-pyproject-toml
+
+[[https://packaging.python.org/en/latest/guides/single-sourcing-package-version/#single-sourcing-the-version][single-sourcing version]]
+
+** [2024-06-07 Fri 11:44]
+
+macOS Sonoma ships with Python 3.9.6 and with setuptools 58.04
+
+setuptools can be configured with pyproject.toml only as setuptools 61.0.0
+
+So:
+- must not rely on pyproject.toml
+- can use a setup.cfg
+
+twine upload to PyPi
+
+** [2024-06-07 Fri 14:07] two configurations:
+
+*** config 1
+
+#+begin_quote
+.
+ ├── pyproject.toml
+ ├── python_script
+ │  ├── __init__.py
+ │  ├── __main__.py
+ │  └── python_script.py
+#+end_quote
+
+properties:
+
+- pro: $ python3 -m python_script
+- pro: $ python-script
+- con: then python_script.py can't just go into the path!
+
+Conflict:
+- copy-file installability is good, and requires files be named like CL tools
+- pip-installability is good
+- but pip requires modules to have bad names for a CL tool
+  
+Options:
+1. duplicate the file, python-script AND python_script??
+2. use =exec= to load a file without the py extension?
+
+One might think there was an option 3, to just use a Python-compliant name also for the CLI, by calling it python_script.py or pythonscript.py. But this seems not to work. The  =python3 -m= builds a shim. When that shim runs, it does not find the package named python_script. Not clear why. In other words, there is a defect in the =python3 -m=  run mechanism such that you cannot name one of your project entry point scripts "foo.py" if the import name of your package is "foo", since then 
+
+
+*** config 2?
+ .
+ ├── pyproject.toml
+ ├── python_script
+ │  ├── __init__.py
+ │  ├── __main__.py
+ │  └── python_script.py
+ 
+** [2024-06-07 Fri 14:16] naming
+
+names:
+- pythonscript
+- python-script
+- pythonscript.py
+- python_script.py
+
+- pyrun
+- pyrunscript
+- python-script.py
+- pyscript:
+  - no used
+- pydepscript
+- depscript
+  - no. no mention of python
+
+
+** [2024-06-07 Fri 16:59] name collision
+
+The project name "pythonscript" was rejected.
+
+presumably because of the existing project PythonScript1, a [[https://pypi.org/project/PythonScript1/#history][dead stub of a project]]. [[https://pypi.org/project/PythonScript1/#history][collision policy]]
+
+will try pythonrunscript
+

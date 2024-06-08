@@ -1,0 +1,20 @@
+#!/usr/bin/env pythonrunscript
+#
+# ```conda_install_specs.txt
+# python=3.10
+# numpy
+# ```
+# 
+# ```requirements.txt
+# tqdm==4.66.4
+# ```
+#
+import numpy
+import sys
+
+print("I'm the test script3")
+print("I'm the test script's second line")
+print(f"test script argv: {sys.argv}")
+
+
+    

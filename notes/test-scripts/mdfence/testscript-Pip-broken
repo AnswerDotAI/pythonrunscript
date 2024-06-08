@@ -1,0 +1,17 @@
+#!/usr/bin/env pythonrunscript
+#
+# ```requirements.txt
+# I_am_impossible_to_install!
+# ```
+from tqdm import tqdm
+import sys
+
+print("I'm the test script")
+print("I'm the test script's second line")
+
+print(f"test script args: {sys.argv}")
+for i in tqdm(range(10000)):
+    pass
+
+
+    
