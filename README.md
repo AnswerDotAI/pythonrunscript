@@ -103,6 +103,8 @@ But you might need conda if you need conda-only dependencies, if you want to spe
 
 ## What, why would I want this?
 
+(For a muuuch longer explanation, check out [dev chat with me (Alexis), Jeremy Howard, and Johno Whitaker](https://www.youtube.com/watch?v=IECcEbXlIl8).)
+
 If none of the above appeals to you, perhaps you never had problems with python dependency management before? (Congrats!) But if the dilemma is totally alien to you and you’re curious, here is the issue.
 
 Suppose you’re writing a single-file Python module, i.e., a script, `hello.py`, like this:
