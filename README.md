@@ -59,7 +59,7 @@ Some popular dependencies, like [cudatoolkit](https://developer.nvidia.com/cuda-
 
 To specify conda dependencies, you must add a *conda environment.yml block* or a *conda_install_specs_.txt block*. You may use this instead of, or in addition to, a pip requirements.txt block. They use two other types of fenced comment blocks. The environment block is intoduced by ```` ```environment.yml ```` and it should contain an environment.yml file verbatim.
 
-The install spec block is introduced by ```` ```conda_install_specs.txt ```` block, and it should introduce conda install specs. which should specify a “conda install specification”. A conda install spec is simply the string passed to the `conda install` command. Conda documents [exact syntax for an install specification](https://conda.io/projects/conda/en/latest/user-guide/concepts/pkg-search.html), which only requires naming the conda package, but also allows specifying the version, the channel, or specific builds.
+The install spec block is introduced by ```` ```conda_install_specs.txt ```` block, and it should introduce conda install specs. A conda install spec is simply the string passed to the `conda install` command. Conda documents the [exact syntax for a conda install spec](https://conda.io/projects/conda/en/latest/user-guide/concepts/pkg-search.html), which only requires naming the conda package, but also allows specifying the version, the channel, or specific builds.
 
 For instance, this script uses a conda environment.yml block:
 
@@ -97,9 +97,9 @@ for i in tqdm(range(10000)):
 print("Phew. That was fun!")
 ```
 
-Do you really need conda? Maybe not! If you don’t specify conda dependencies, pythonrunscript won’t try to use it.
+Do you really need conda? Maybe not! If you don’t specify conda dependencies, pythonrunscript won’t use conda.
 
-But you might need conda if you need conda-only dependencies, if you want to specify the version of python itself or to use packages outside of the Python ecosystem. This [weights & biases blog post](https://wandb.ai/wandb_fc/pytorch-image-models/reports/A-faster-way-to-get-working-and-up-to-date-conda-environments-using-fastchan---Vmlldzo2ODIzNzA) explains the situation well, and [this script will install conda](https://github.com/fastai/fastsetup/blob/master/setup-conda.sh) on all the platforms.)
+But you might need conda if you want to use conda-only dependencies, to specify the version of python itself, or to use packages outside of the Python ecosystem. This [weights & biases blog post](https://wandb.ai/wandb_fc/pytorch-image-models/reports/A-faster-way-to-get-working-and-up-to-date-conda-environments-using-fastchan---Vmlldzo2ODIzNzA) explains the situation well, and [this script will install conda](https://github.com/fastai/fastsetup/blob/master/setup-conda.sh) on all the platforms.)
 
 ## What, why would I want this?
 
