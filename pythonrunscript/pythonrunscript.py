@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# python>3.9.6
+# python>=3.9.6
 import sys, re, os, subprocess, hashlib, logging, platform, argparse, tempfile, shutil, uuid, textwrap, shlex
 from abc import ABC
 from enum import Enum
