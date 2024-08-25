@@ -32,3 +32,12 @@ Issues = "https://github.com/AnswerDotAI/pythonrunscript/issues"
 
 [project.scripts]
 "pythonrunscript" = "pythonrunscript.pythonrunscript:main"
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "-v --tb=short --import-mode=importlib"
+pythonpath = "."
