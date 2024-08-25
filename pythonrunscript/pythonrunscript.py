@@ -126,8 +126,7 @@ def perform_dry_run(proj):
         print_python3_path()
         return
     elif not proj.exists():
-        print("## The needed project directory does not already exist.\n")
-        print(f"## I would create this project directory:\n{proj.project_path}\n")
+        print("## The needed project directory does not exist so I would create this project directory:\n{proj.project_path}\n")
         print(f"## Inside, I would create this environment directory:\n{proj.envdir}\n")
         if proj.conda_envyml:
             print(f"## I found an environment.yml dependency block, so I'd use that.")
@@ -141,12 +140,11 @@ def perform_dry_run(proj):
             print(f"\t{make_conda_install_spec_command(proj.project_path, install_spec_f)}\n")
         if proj.pip_requirements:
             print(f"## To install pip dependencies, I'd execute the following pip command:\n")
-            print(f"\tpython3 -m pip install -r {proj.pip_requirements}\n")
+            print(f"\tpython3 -m pip install -r {os.path.join(proj.envdir,'requirements.txt')}\n")
             print_python3_path()
-    print(f"## This project directory exists:\n{proj.project_path}\n")
+    print(f"## At this point, this project directory would exist:\n{proj.project_path}\n")
     print(f"## I'd run using this env dir:\n{proj.envdir}\n")
     return
-    
 
 def parse_dependencies(script, verbose=False) -> Tuple[str,str,str,str]:
     "Parses script and returns any conda or pip dep blocks"
@@ -164,6 +162,7 @@ def parse_dependencies(script, verbose=False) -> Tuple[str,str,str,str]:
         print(f"## Parsing this script for dependencies: {script}\n")
         print("## Extracted this comment block for parsing:\n")
         print(textwrap.indent('\n'.join(comment_head),'\t'))
+        print()
     bad_parse = False
     collected_block = []
     pip_block_valid = []
@@ -258,15 +257,15 @@ def parse_dependencies(script, verbose=False) -> Tuple[str,str,str,str]:
         logging.info("At least one code fence could not be parsed as part of a valid dependency block")
     if verbose:
         if conda_env_block_valid:
-            print("## Parsed the following to use for environment.yml:\n")
+            print("## Parsed the following text to use for environment.yml:\n")
             print(textwrap.indent('\n'.join(conda_env_block_valid),'\t'))
             print('')
         if conda_spec_block_valid:
-            print("## Parsed the following to use for conda_install_specs.txt:\n")
+            print("## Parsed the following text to use for conda_install_specs.txt:\n")
             print(textwrap.indent('\n'.join(conda_spec_block_valid),'\t'))
             print('')
         if pip_block_valid:
-            print("## Parsed the following to use for pip requirements.txt:\n")
+            print("## Parsed the following text to use for pip requirements.txt:\n")
             print(textwrap.indent('\n'.join(pip_block_valid),'\t'))
             print('')
     conda_env_block_valid = '\n'.join(conda_env_block_valid) if conda_env_block_valid else ''
