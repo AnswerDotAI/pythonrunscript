@@ -1,29 +1,82 @@
-import os, tempfile, textwrap
-import pytest
+import os, tempfile, textwrap  # noqa: E401
+from collections import namedtuple
 from pythonrunscript.pythonrunscript import parse_dependencies
 
+Expected = namedtuple('Expected',['reqs','cis','envyml'])
 
-tests: list[tuple[str, tuple[str, str, str]]] = [
+tests: list[tuple[str, Expected]] = [
+    ## requirements, 1-line
     (
     """
     # ```requirements.txt
     # requests==2.26.0
     # ```
     """,
-        (
-        """
+        Expected(
+        reqs="""
         requests==2.26.0
         """,
-        "",
-        "")
+        cis="",
+        envyml="")
+     ),
+    ## conda_install_sepcs, 1-line
+    (
+    """
+    # ```conda_install_specs.txt
+    # requests==2.27.0
+    # ```
+    """,
+        Expected(
+        reqs="""
+        """,
+        cis="""
+        requests==2.27.0
+        """,
+        envyml="")
+     ),
+    ## one-line requirements
+    (
+    """
+    # ```requirements.txt
+    # requests==2.26.0
+    # ```
+    # 
+    # ```conda_install_specs.txt
+    # python=<3.11
+    # ```
+    """,
+        Expected(
+        reqs="""
+        requests==2.26.0
+        """,
+        cis="python=<3.11",
+        envyml="")
+     ),
+    ## 2-line conda
+    (
+    """
+    # ```conda_install_specs.txt
+    # python=3.11
+    # nbclassic
+    # ```
+    """,
+        Expected(
+        reqs="",
+        cis="""
+        python=3.11
+        nbclassic
+        """,
+        envyml="")
      ),
 ]
-f = lambda s:(textwrap.dedent(s)).strip()
+def f(s):
+    return textwrap.dedent(s).strip()
 tests = [(f(a),(f(b),f(c),f(d))) for (a,(b,c,d)) in tests]
 del f
 
 def test_parse_dependencies_basic():
-    for (input,(expected_pip_val,expected_conda_env,expected_conda_specs)) in tests:
+    for (input,(expected_pip_val,expected_conda_specs,expected_conda_env)) in tests:
+        (_, out_pip, out_conda_env, out_conda_specs) = (None,None,None,None)
         p = os.path.join( tempfile.gettempdir(), "test_script.py" )    
         with open(p, 'w') as f:
             f.write(input)
