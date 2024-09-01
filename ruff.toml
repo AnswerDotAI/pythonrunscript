@@ -1,2 +1,1 @@
-[tool.ruff]
-ignore = ["E401", "E701", "F541"]  # Replace these with the error codes you want to suppress
+ignore = ["E401", "F401", "E701", "F541"]

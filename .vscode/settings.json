@@ -1,4 +1,49 @@
 {
     "python.linting.ruffEnabled": true,
-    "python.linting.enabled": true
+    "python.linting.enabled": true,
+
+    // Enable Pylance
+    "python.languageServer": "Pylance",
+
+    // Enable type checking mode and set it to strict
+    "python.analysis.typeCheckingMode": "strict",
+
+    // Configure specific diagnostic settings
+    "python.analysis.diagnosticSeverityOverrides": {
+        // My desired configuration is for Pylance to treat unknown symbols
+        // as an error only when it can be determined they are not imported
+        // anywhere, even through wildcard imports.
+        // 
+        // But alas, Pyright cannot track definitions with wildcard imports.
+        // 
+        // Also, I don't know how to configure Pylance to report unknown
+        // symbols as errors ONLY when all imports are known.
+        //
+        // so atm one must choose:
+        // 1. treat wildcard imports AND unknown symbols as an error
+        // 2 treat neither as an error.
+
+        // "reportWildcardImportFromLibrary": "none", // Ignore wildcard imports
+        "reportUnknownParameterType": "none", // Ignore unknown parameter types
+        "reportUnknownVariableType": "none", // Ignore unknown variable types
+        "reportUnknownMemberType": "none", // Ignore unknown member types
+        "reportUnknownArgumentType": "none", // Ignore unknown argument types
+        "reportUnknownLambdaType": "none", // Ignore unknown lambda types
+        "reportUnknownType": "none", // Ignore unknown types
+        //
+        // TRULY HARMLESS
+        //
+        // just type annotatiosn not there.
+        "reportMissingTypeStubs": "none", // Ignore missing type stubs
+        "reportMissingImports": "none", // Ignore missing imports
+        "reportMissingParameterType": "none",
+        "reportMissingTypeArgument": "none", // Ignore missing type arguments
+        "reportUntypedFunctionDecorator": "none",
+        "reportUnusedImport": "none"
+    },
+
+    // Exclude specific files or directories from Pylance analysis
+    "python.analysis.exclude": [
+        "examples/**",
+    ],
 }

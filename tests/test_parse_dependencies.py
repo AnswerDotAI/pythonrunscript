@@ -1,8 +1,12 @@
 import os, tempfile, textwrap  # noqa: E401
-from collections import namedtuple
 from pythonrunscript.pythonrunscript import parse_dependencies
 
-Expected = namedtuple('Expected',['reqs','cis','envyml'])
+from typing import NamedTuple
+
+class Expected(NamedTuple):
+    reqs: str
+    cis: str
+    envyml: str
 
 tests: list[tuple[str, Expected]] = [
     ## requirements, 1-line
@@ -71,7 +75,7 @@ tests: list[tuple[str, Expected]] = [
 ]
 def f(s):
     return textwrap.dedent(s).strip()
-tests = [(f(a),(f(b),f(c),f(d))) for (a,(b,c,d)) in tests]
+tests = [(f(a),(f(b),f(c),f(d))) for (a,(b,c,d)) in tests] # type: ignore
 del f
 
 def test_parse_dependencies_basic():
