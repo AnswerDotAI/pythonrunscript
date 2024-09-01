@@ -1,4 +1,4 @@
-import os, tempfile, textwrap  # noqa: E401
+import pytest, os, tempfile, textwrap  # noqa: E401
 from pythonrunscript.pythonrunscript import parse_dependencies
 
 from typing import NamedTuple
@@ -78,8 +78,11 @@ def f(s):
 tests = [(f(a),(f(b),f(c),f(d))) for (a,(b,c,d)) in tests] # type: ignore
 del f
 
-def test_parse_dependencies_basic():
-    for (input,(expected_pip_val,expected_conda_specs,expected_conda_env)) in tests:
+@pytest.mark.parametrize("test_index", list(range(len(tests))))
+def test_parse_dependencies_basic(test_index:int):
+    to_run = tests[test_index:test_index+1]
+    print(f"{to_run=}")
+    for (input,(expected_pip_val,expected_conda_specs,expected_conda_env)) in to_run:
         (_, out_pip, out_conda_env, out_conda_specs) = (None,None,None,None)
         p = os.path.join( tempfile.gettempdir(), "test_script.py" )    
         with open(p, 'w') as f:
