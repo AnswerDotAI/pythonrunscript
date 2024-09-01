@@ -126,7 +126,7 @@ def perform_dry_run(proj):
         print_python3_path()
         return
     elif not proj.exists():
-        print("## The needed project directory does not exist so I would create this project directory:\n{proj.project_path}\n")
+        print(f"## The needed project directory does not exist so I would create this project directory:\n{proj.project_path}\n")
         print(f"## Inside, I would create this environment directory:\n{proj.envdir}\n")
         if proj.conda_envyml:
             print(f"## I found an environment.yml dependency block, so I'd use that.")
@@ -148,134 +148,71 @@ def perform_dry_run(proj):
 
 def parse_dependencies(script, verbose=False) -> tuple[str,str,str,str]:
     "Parses script and returns any conda or pip dep blocks"
-    # grab until first non-comment, non-empty line
-    comment_head = []
-    with open(script,'r') as file:
-        for line in file:
-            lstrip = line.strip()
-            if lstrip == '': pass
-            elif lstrip.startswith('# '):
-                comment_head.append(lstrip[2:])
-            elif lstrip.startswith('#'): pass
-            else: break
+    LT = Enum('LT', [ 
+        'BEG_CONDA_SPEC_YML','BEG_CONDA_ENV_YML','BEG_PIP_YML','END_YML',
+        'BEG_CONDA_SPEC','BEG_CONDA_ENV','BEG_PIP','END',
+        'TEXT'])
+    
+    p = {
+        LT.BEG_CONDA_SPEC_YML : r"^# /// pythonrunscript-conda-install-specs-txt$",
+        LT.BEG_CONDA_ENV_YML  : r"^# /// pythonrunscript-environment-yml$",
+        LT.BEG_PIP_YML        : r"^# /// pythonrunscript-requirements-txt$",
+        LT.END_YML            : r"^# ///$",
+        LT.BEG_CONDA_SPEC     : r"^# ```conda_install_specs.txt$",
+        LT.BEG_CONDA_ENV      : r"^# ```environment.yml$",
+        LT.BEG_PIP            : r"^# ```requirements.txt$",
+        LT.END                : r"^# ```$",
+        LT.TEXT               : r"^#(| .*)$",
+    }
+
+    boxed_pip_block = ['']
+    boxed_conda_spec_block = ['']
+    boxed_conda_env_block = ['']
+
+    block_type_content_delimiters = [
+        ('requirements.txt', boxed_pip_block, [(LT.BEG_PIP_YML,LT.END_YML),
+                                 (LT.BEG_PIP,LT.END),]),
+        ('conda_install_specs.txt', boxed_conda_spec_block, [(LT.BEG_CONDA_SPEC_YML,LT.END_YML),
+                                        (LT.BEG_CONDA_SPEC,LT.END),]),
+        ('environment.yml', boxed_conda_env_block, [(LT.BEG_CONDA_ENV_YML,LT.END_YML),
+                                       (LT.BEG_CONDA_ENV,LT.END),]),
+    ]
+
+    def make_block_pattern(begend:tuple[LT,LT]) -> str:
+        (beg,end) = begend
+        return rf"(?m:{p[beg]}\s(?P<content>({p[LT.TEXT]}\s)+?){p[end]}(?:\s)?)"
+
+    def extract_content(match):
+        return ''.join(
+            line[2:] if line.startswith('# ') else line[1:]
+            for line in match.group('content').splitlines(keepends=True)
+        )
+
+    # collect all comment lines starting with "# " or equalling "#"
+    # transforming to strip # prefix
+    comments = open(script,'r').read()
     if verbose:
         print(f"## Parsing this script for dependencies: {script}\n")
-        print("## Extracted this comment block for parsing:\n")
-        print(textwrap.indent('\n'.join(comment_head),'\t'))
         print()
-    bad_parse = False
-    collected_block = []
-    pip_block_valid = []
-    conda_spec_block_valid = []
-    conda_env_block_valid = []
     
-    PS = Enum('PS', ['OUT','IN_CONDA_SPEC','IN_CONDA_ENV','IN_PIP'])
-    LT = Enum('LT', [ 'BEG_CONDA_SPEC','BEG_CONDA_ENV','BEG_PIP','END','TEXT'])
+    for (block_type, boxed_content, begend_pairs) in block_type_content_delimiters:
+        for begend in begend_pairs:
+            block_pattern = make_block_pattern(begend)
+            match = re.compile(block_pattern).search(comments)
+            if match:
+                if verbose:
+                    print(f"### Extracted this {block_type} comment block:\n")
+                    print(textwrap.indent(match.group('content'),'\t'))
+                    print()
+                boxed_content[0] = extract_content(match)
+                break
     
-    def which(s):
-        pattern_dict = {LT.BEG_CONDA_SPEC : re.compile(r"^```conda_install_specs.txt$"),
-                        LT.BEG_CONDA_ENV  : re.compile(r"^```environment.yml$"),
-                        LT.BEG_PIP        : re.compile(r"^```requirements.txt$"),
-                        LT.END            : re.compile(r"^```$"),
-                        LT.TEXT           : re.compile(r"^(?P<data>.*)$")}
-        return next(((pat,r.match(s)) for (pat,r) in pattern_dict.items() if r.match(s)))
-
-    parser_state = PS.OUT
-    for line in comment_head:
-        (line_type,m) = which(line)
-        if parser_state == PS.OUT:
-            if line_type == LT.BEG_CONDA_SPEC:
-                parser_state = PS.IN_CONDA_SPEC
-            elif line_type == LT.BEG_CONDA_ENV:
-                parser_state = PS.IN_CONDA_ENV
-            elif line_type == LT.BEG_PIP:
-                parser_state = PS.IN_PIP
-        elif parser_state == PS.IN_CONDA_SPEC:
-            if line_type == LT.BEG_CONDA_SPEC:
-                # nested redundant begin
-                logging.info("Quitting parsing because of conda spec begin with a conda spec block")
-                bad_parse = True
-                break
-            if line_type == LT.BEG_CONDA_ENV:
-                logging.info("Quitting parsing because of conda begin env with a conda spec block")
-                bad_parse = True
-                break
-            elif line_type == LT.BEG_PIP:
-                logging.info("Quitting parsing because of pip begin within a conda block")
-                bad_parse = True
-                break
-            elif line_type == LT.END:
-                parser_state = PS.OUT
-                conda_spec_block_valid.extend(collected_block)
-                collected_block = []
-            elif line_type == LT.TEXT:
-                collected_block.append(m.group('data') if m else '')
-        elif parser_state == PS.IN_CONDA_ENV:
-            if line_type == LT.BEG_CONDA_ENV:
-                # nested redundant begin
-                logging.info("Quitting parsing because of conda begin env within a conda env block")
-                bad_parse = True
-                break
-            if line_type == LT.BEG_CONDA_SPEC:
-                logging.info("Quitting parsing because of conda begin spec within a conda env block")
-                bad_parse = True
-                break
-            elif line_type == LT.BEG_PIP:
-                logging.info("Quitting parsing because of pip begin within a conda block")
-                bad_parse = True
-                break
-            elif line_type == LT.END:
-                parser_state = PS.OUT
-                conda_env_block_valid.extend(collected_block)
-                collected_block = []
-            elif line_type == LT.TEXT:
-                collected_block.append(m.group('data') if m else '')
-        elif parser_state == PS.IN_PIP:
-            if line_type == LT.BEG_CONDA_SPEC:
-                logging.info("Quitting parsing because of conda begin spec within a pip block")
-                bad_parse = True
-                break
-            if line_type == LT.BEG_CONDA_ENV:
-                logging.info("Quitting parsing because of conda begin env within a pip block")
-                bad_parse = True
-                break
-            elif line_type == LT.BEG_PIP:
-                # nested redundant begin
-                logging.info("Quitting parsing because of pip begin within a pip block")
-                bad_parse = True
-                break
-            elif line_type == LT.END:
-                parser_state = PS.OUT
-                pip_block_valid.extend(collected_block)
-                collected_block = []
-            elif line_type == LT.TEXT:
-                collected_block.append(m.group('data') if m else '')
-    if parser_state != PS.OUT:
-        # stopped parsing, possibly after collecting valid blocks
-        bad_parse = True
-    if bad_parse:
-        logging.info("At least one code fence could not be parsed as part of a valid dependency block")
-    if verbose:
-        if conda_env_block_valid:
-            print("## Parsed the following text to use for environment.yml:\n")
-            print(textwrap.indent('\n'.join(conda_env_block_valid),'\t'))
-            print('')
-        if conda_spec_block_valid:
-            print("## Parsed the following text to use for conda_install_specs.txt:\n")
-            print(textwrap.indent('\n'.join(conda_spec_block_valid),'\t'))
-            print('')
-        if pip_block_valid:
-            print("## Parsed the following text to use for pip requirements.txt:\n")
-            print(textwrap.indent('\n'.join(pip_block_valid),'\t'))
-            print('')
-    conda_env_block_valid = '\n'.join(conda_env_block_valid) if conda_env_block_valid else ''
-    conda_spec_block_valid = '\n'.join(conda_spec_block_valid) if conda_spec_block_valid else ''
-    pip_block_valid   = '\n'.join(pip_block_valid) if pip_block_valid else ''
     hash = hashlib.md5()
-    hash.update(conda_env_block_valid.encode('utf-8'))
-    hash.update(conda_spec_block_valid.encode('utf-8'))
-    hash.update(pip_block_valid.encode('utf-8'))
-    return (hash.hexdigest(), pip_block_valid, conda_env_block_valid, conda_spec_block_valid)
+    hash.update(boxed_pip_block[0].encode('utf-8'))
+    hash.update(boxed_conda_env_block[0].encode('utf-8'))
+    hash.update(boxed_conda_spec_block[0].encode('utf-8'))
+    return (hash.hexdigest(), boxed_pip_block[0], boxed_conda_env_block[0], boxed_conda_spec_block[0])
+
 
 
 class Project(ABC):
