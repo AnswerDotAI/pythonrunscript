@@ -33,13 +33,16 @@
         //
         // TRULY HARMLESS
         //
-        // just type annotatiosn not there.
+        // unused symbols
+        "reportUnusedImport": "none",
+        "reportUnusedVariable": "none",
+        "reportUnusedFunction": "none",
+        // issing type annotations
         "reportMissingTypeStubs": "none", // Ignore missing type stubs
         "reportMissingImports": "none", // Ignore missing imports
         "reportMissingParameterType": "none",
         "reportMissingTypeArgument": "none", // Ignore missing type arguments
         "reportUntypedFunctionDecorator": "none",
-        "reportUnusedImport": "none"
     },
 
     // Exclude specific files or directories from Pylance analysis
