@@ -170,3 +170,47 @@ presumably because of the existing project PythonScript1, a [[https://pypi.org/p
 
 will try pythonrunscript
 
+** [2024-08-20 Tue 22:32] noted
+
+An official spec for embedded deps: https://packaging.python.org/en/latest/specifications/inline-script-metadata/#inline-script-metadata
+
+PEP: https://peps.python.org/pep-0723/
+
+
+Noted re: inline script metadata:
+
+one example for a tool called "some-toml"
+
+#+begin_quote
+# /// some-toml
+# embedded-csharp = """
+# /// <summary>
+# /// text
+# ///
+# /// </summary>
+# public class MyClass { }
+# """
+# ///
+#+end_quote
+
+ANother example for the tool called "script":
+
+#+begin_quote
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "requests<3",
+#   "rich",
+# ]
+# ///
+#+end_quote
+
+Possible use of this syntax: add support for doc comments with these tools:
+- pythonrunscript-requirements.txt
+- pythonrunscript-conda_install_specs.txt
+
+current parser works by:
+- defining 3 begin patterns, 1 end pattern, and 1 data pattern
+- defining 4 parser patterns (3 in-block, 1 out-of-block)
+- elif-based pattern matching on (line_type, match obj)
+
