@@ -53,7 +53,7 @@ tests: list[tuple[str, Expected]] = [
         reqs="""
         requests==2.26.0
         """,
-        cis="python=<3.11",
+        cis="python=<3.11\n",
         envyml="")
      ),
     ## 2-line conda
@@ -74,7 +74,7 @@ tests: list[tuple[str, Expected]] = [
      ),
 ]
 def f(s):
-    return textwrap.dedent(s).strip()
+    return textwrap.dedent(s).lstrip()
 tests = [(f(a),(f(b),f(c),f(d))) for (a,(b,c,d)) in tests] # type: ignore
 del f
 
