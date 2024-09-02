@@ -3,7 +3,7 @@
 import sys, re, os, subprocess, hashlib, logging, platform, argparse, tempfile, shutil, uuid, textwrap, shlex
 from abc import ABC
 from enum import Enum
-from typing import NoReturn, Tuple, Union
+from typing import NoReturn, Union
 
 logging.basicConfig(level=logging.WARNING)
 Log = Enum('Log', ['SILENT','ERRORS','VERBOSE'])
@@ -146,7 +146,7 @@ def perform_dry_run(proj):
     print(f"## I'd run using this env dir:\n{proj.envdir}\n")
     return
 
-def parse_dependencies(script, verbose=False) -> Tuple[str,str,str,str]:
+def parse_dependencies(script, verbose=False) -> tuple[str,str,str,str]:
     "Parses script and returns any conda or pip dep blocks"
     # grab until first non-comment, non-empty line
     comment_head = []
