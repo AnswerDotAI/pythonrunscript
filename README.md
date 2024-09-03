@@ -132,8 +132,31 @@ Hopefully, this tool helps. The dependency syntaxes which it uses are exactly th
 
 Great, then, this is not for you. 😇 Cultivate your garden.
 
-## Inspiration
+## Inspiration and related projects
 
 - [swift-sh](https://github.com/mxcl/swift-sh) does the same trick for Swift
 - [rust-script](https://rust-script.org) does the same trick for rust
 - [scriptisto](https://github.com/igor-petruk/scriptisto) does this for any language, but at the cost of shifting the complexity into the comment block.
+- [pip.wtf](https://pip.wtf), a cry from the heart and a piece of beautiful simplicity. It's just eight lines of code which defines a function. In a Python script, calling this function will install the script's dependencies and run in an environment defined by them. This strikes me as perfect for many use cases. However, it might not be approriate when (1) you need conda because your project depends on conda-only dependencies or (2) you want your script to run like a normal script by default, e.g., not to install dependencies when you just run it with the normal interpreter.
+- [uv](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies) reads the new PEP-723 *inline script metadata*, supporting TYPE=script, as I will describe below.
+- [PEP-723](https://peps.python.org/pep-0723/) defines a standard, general syntax for different types of *inline script metadata*. This lets you embed metadata into a script's comments (just like pythonrunscript does). 
+
+## Wait, is pythonrunscript an implementation of PEP-723? In conflict with it? Superfluous in the light of `uv`?
+
+Good question! Here's the situation afaict.
+
+The PEP defines a general syntax standard for embedded metadata. It _also_ shows one particular type of embedded metadata, the "script" type. This type is for declaring a script's dependency in order to allow single-file scripts where a tool can install the dependencies on demand (just like pythonrunscript does!).
+
+The script type syntax uses a TOML-like syntax and allows specifying both PyPI requirements and the required python version. As far as I know, the  `uv` tool is the only tool which currently this "script" syntax right now, and actually enables single-file scripts.
+
+  So should _you_ use `uv` or pythonrunscript?
+  
+  I'd say that `uv` is better choice if (1) you're already using it or don't mind installing it, (2) you don't mind writing your dependencies as a TOML fragment, (3) you value `uv`'s vastly superior performance, and (4) you trust in the stability/longevity of that tool.
+  
+  I think pythonrunscript might suit you better if (1) you need conda dependencies, (2) you don't want to require your users to install `uv`, (3) you want to re-use existing tooling and existing metadata definitions exactly, (4) you prefer a tool that's simple enough that you could debug it and understand it yourself, rather than counting on someone else to maintain it.
+  
+  Personally, I plan to keep using this until something else naturally works with conda. I will probably also update it to support PEP723, not by supporting the "script" type, but by specializing the syntax with new TYPE values for the supported metadata kinds of `requirements.txt`, `environment.yml`, and `conda_install_specs.txt`. This is just for the sake of making the universe more orderly.
+  
+
+
+
