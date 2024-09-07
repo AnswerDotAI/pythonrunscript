@@ -1,5 +1,5 @@
-import pytest, os, tempfile, textwrap  # noqa: E401
-from pythonrunscript.pythonrunscript import parse_dependencies
+import pytest, os, tempfile, textwrap, tomlkit  # noqa: E401
+from pythonrunscript.pythonrunscript import parse_dependencies, parse_script_toml, tomlconfig_to_pip_conda
 
 from typing import NamedTuple
 
@@ -101,3 +101,43 @@ def test_parse_dependencies_basic(test_index:int):
         finally:
             # Clean up the temporary file
             os.remove(p)
+
+toml_inputs:list[str] = [
+"""
+requires-python = ">=3.11"
+dependencies = ["requests<3", "rich", ]
+""",
+"""
+requires-python = ">=3.11"
+dependencies = [
+  "requests<3",
+  "rich",
+]
+""",
+"""
+requires-python = ">=3.11"
+dependencies = [
+  "requests<3", #comment
+  # comment
+"rich",
+]
+""",
+]
+
+@pytest.mark.parametrize("toml_test_index", list(range(len(toml_inputs))))
+def test_parse_toml(toml_test_index):
+    s = toml_inputs[toml_test_index]
+    (out_pip,out_conda) = parse_script_toml(s)
+
+    # test if we're parsing like tomlkit
+    config = tomlkit.parse(s)
+    (kit_pip_deps,kit_conda_python_spec) = tomlconfig_to_pip_conda(config)
+    assert kit_pip_deps == out_pip
+    assert kit_conda_python_spec == out_conda
+
+    exp_conda_specs = "python>=3.11"
+    exp_pip = """requests<3
+rich
+"""
+    assert exp_pip == out_pip, "unexpected requirements generated from script TOML"
+    assert exp_conda_specs == out_conda, "unexpected conda install specs generated from script TOML"

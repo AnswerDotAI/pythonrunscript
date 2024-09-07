@@ -216,3 +216,39 @@ current parser works by:
 
 notable: https://pip.wtf/
 
+** [2024-09-02 Mon 23:29] notes on wtf.pip
+
+- PRO. lightweight, comprehensible. Very good. <10 LOC.
+- CON. semi-nonstandard syntax for specifying deps
+- CON. Only pip, no conda
+- CON. installs and uses dedicated env, unconditionally, and even if current env suffices
+  - inefficient.
+  - interferes with other workflows, like developing the script in an IDE-managed env
+
+Evolution?:
+- only install deps if needed and confirmed?
+  - q: does pip itself already providing UI prompting?
+  - q: how to check deps?
+    - also with pip
+
+      
+** [2024-09-06]
+
+- [ ] Q: how to convert all version specs valid in script TOML, to specs valid in conda python specs and requirementx.txt dep specs?
+
+- exact version format required in PEP723 TOML?
+
+  for deps, Uses https://packaging.python.org/en/latest/specifications/dependency-specifiers/#dependency-specifiers
+
+  for python, uses https://packaging.python.org/en/latest/specifications/version-specifiers/#version-specifiers
+
+- exact version format required in requirements.txt?
+
+  requirements.txt ALLOWs use of requirements specifiers: https://pip.pypa.io/en/stable/reference/requirements-file-format/
+
+  https://pip.pypa.io/en/stable/reference/requirement-specifiers/#requirement-specifiers
+
+  "Generally speaking, a requirement specifier is composed of a project name followed by optional version specifiers."
+  
+- exact version format required in a conda spec?
+

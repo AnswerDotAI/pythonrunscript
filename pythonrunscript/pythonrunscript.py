@@ -213,7 +213,36 @@ def parse_dependencies(script, verbose=False) -> tuple[str,str,str,str]:
     hash.update(boxed_conda_spec_block[0].encode('utf-8'))
     return (hash.hexdigest(), boxed_pip_block[0], boxed_conda_env_block[0], boxed_conda_spec_block[0])
 
+def tomlconfig_to_pip_conda(toml_config) -> tuple[str,str]:
+    "From a TOML dict, to (pip reqs, conda python spec)"
+    if 'requires-python' in toml_config:
+        conda_python_install_spec = f"python{toml_config['requires-python']}"
+    else:
+        conda_python_install_spec = ''
+    if 'dependencies' in toml_config:
+        pip_reqs = '\n'.join(toml_config['dependencies']) + '\n'
+    else:
+        pip_reqs = ''
+    return (pip_reqs,conda_python_install_spec)
 
+def parse_script_toml(toml_str) -> tuple[str,str]:
+    """
+    From script TOML text, to (pip_reqs,conda python spec).
+    
+    This parses the TOML fragment in a PEP723 metadata block where TYPE=script.
+    Uses a limited custom parser to neeed only Python 3.9.6 and zero deps.
+    """
+    toml_str = re.sub(r'#.*$', '', toml_str, flags=re.MULTILINE)
+    config = {}
+    requires_python_match = re.search(r'requires-python\s*=\s*"([^"]*)"', toml_str)
+    if requires_python_match:
+        config['requires-python'] = requires_python_match.group(1)
+    dependencies_match = re.search(r'dependencies\s*=\s*\[(.*?)\]', toml_str, re.DOTALL)
+    if dependencies_match:
+        dependencies_str = dependencies_match.group(1)
+        dependencies = re.findall(r'"([^"]*)"', dependencies_str)
+        config['dependencies'] = dependencies
+    return tomlconfig_to_pip_conda(config)    
 
 class Project(ABC):
     @staticmethod

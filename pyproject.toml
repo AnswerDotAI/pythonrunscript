@@ -34,7 +34,7 @@ Issues = "https://github.com/AnswerDotAI/pythonrunscript/issues"
 "pythonrunscript" = "pythonrunscript.pythonrunscript:main"
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest","tomlkit"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
