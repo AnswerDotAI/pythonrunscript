@@ -72,6 +72,23 @@ tests: list[tuple[str, Expected]] = [
         """,
         envyml="")
      ),
+     ## script
+     (
+        """
+        # /// script
+        # requires-python = ">=3.11"
+        # dependencies = ["requests<3", "rich", ]
+        # ///
+        """,
+        Expected(
+            reqs="""
+            requests<3
+            rich
+            """,
+            cis="python>=3.11",
+            envyml=""
+        )
+     )
 ]
 def f(s):
     return textwrap.dedent(s).lstrip()

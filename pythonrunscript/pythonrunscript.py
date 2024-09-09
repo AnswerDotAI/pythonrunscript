@@ -149,11 +149,13 @@ def perform_dry_run(proj):
 def parse_dependencies(script, verbose=False) -> tuple[str,str,str,str]:
     "Parses script and returns any conda or pip dep blocks"
     LT = Enum('LT', [ 
+        'BEG_SCRIPT_YML',
         'BEG_CONDA_SPEC_YML','BEG_CONDA_ENV_YML','BEG_PIP_YML','END_YML',
         'BEG_CONDA_SPEC','BEG_CONDA_ENV','BEG_PIP','END',
         'TEXT'])
     
     p = {
+        LT.BEG_SCRIPT_YML     : r"^# /// script$",
         LT.BEG_CONDA_SPEC_YML : r"^# /// pythonrunscript-conda-install-specs-txt$",
         LT.BEG_CONDA_ENV_YML  : r"^# /// pythonrunscript-environment-yml$",
         LT.BEG_PIP_YML        : r"^# /// pythonrunscript-requirements-txt$",
@@ -170,12 +172,13 @@ def parse_dependencies(script, verbose=False) -> tuple[str,str,str,str]:
     boxed_conda_env_block = ['']
 
     block_type_content_delimiters = [
+        ('script',[], [(LT.BEG_SCRIPT_YML,LT.END_YML)]),
         ('requirements.txt', boxed_pip_block, [(LT.BEG_PIP_YML,LT.END_YML),
-                                 (LT.BEG_PIP,LT.END),]),
+                                               (LT.BEG_PIP,LT.END),]),
         ('conda_install_specs.txt', boxed_conda_spec_block, [(LT.BEG_CONDA_SPEC_YML,LT.END_YML),
-                                        (LT.BEG_CONDA_SPEC,LT.END),]),
+                                                             (LT.BEG_CONDA_SPEC,LT.END),]),
         ('environment.yml', boxed_conda_env_block, [(LT.BEG_CONDA_ENV_YML,LT.END_YML),
-                                       (LT.BEG_CONDA_ENV,LT.END),]),
+                                                    (LT.BEG_CONDA_ENV,LT.END),]),
     ]
 
     def make_block_pattern(begend:tuple[LT,LT]) -> str:
@@ -204,7 +207,13 @@ def parse_dependencies(script, verbose=False) -> tuple[str,str,str,str]:
                     print(f"### Extracted this {block_type} comment block:\n")
                     print(textwrap.indent(match.group('content'),'\t'))
                     print()
-                boxed_content[0] = extract_content(match)
+                if block_type == 'script':
+                    (pip_env, conda_env) = parse_script_toml(extract_content(match))
+                    boxed_pip_block[0] = pip_env
+                    boxed_conda_spec_block[0] = conda_env
+                    break
+                else:
+                    boxed_content[0] = extract_content(match)
                 break
     
     hash = hashlib.md5()
