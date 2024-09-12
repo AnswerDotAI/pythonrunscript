@@ -252,3 +252,9 @@ Evolution?:
   
 - exact version format required in a conda spec?
 
+** [2024-09-12] next steps
+
+- [ ] update README.
+- [ ] update CLI docs
+- [ ] update dry run mode
+- [ ] verify that TOML syntax for python version and pip versions matches conda install spec and reqs.txt syntax
