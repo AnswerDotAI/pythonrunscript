@@ -318,13 +318,15 @@ class ProjectConda(Project):
                                   self.conda_specs,
                                   self.pip_requirements,
                                   log_level_for_verbose(self.verbose))
+    def run(self, args) -> NoReturn:
+        conda_run_script(self.interpreter,self.script,args,self.envdir)
+
 class ProjectNoDeps(Project):
     def exists(self): return True
     def create(self): return True
     @property
     def interpreter(self):
         return sys.executable
-
 
 def run_with_logging(command:Union[str,list],proj_dir,out_f,err_f,verbosity):
     '''
@@ -477,6 +479,15 @@ def run_script(interpreter, script, args) -> NoReturn:
     sys.stdout.flush()
     logging.info(f'os.execvp({interpreter}, [{interpreter},{script}] + {args})')
     os.execvp(interpreter, [interpreter,script] + args)
+
+def conda_run_script(interpreter, script, args,conda_env_dir) -> NoReturn:
+    logging.info(
+        f"using conda run to run {script} using {interpreter} with args: {args}"
+    )
+    sys.stdout.flush()
+    logging.info(f'os.execvp({interpreter}, [{interpreter},{script}] + {args})')
+    cmd = ["conda","run","-p",conda_env_dir,interpreter,script] + args
+    os.execvp(cmd[0],cmd)
 
 #
 # venv operations
