@@ -145,17 +145,19 @@ Great, then, this is not for you. 😇 Cultivate your garden.
 
 Good question! Here's the situation afaict.
 
-The PEP defines a general syntax standard for embedded metadata. It _also_ shows one particular type of embedded metadata, the "script" type. This type is for declaring a script's dependency in order to allow single-file scripts where a tool can install the dependencies on demand (just like pythonrunscript does!).
+The PEP defines a standard syntax for embedded metadata. It _also_ shows one particular implementation of that standard, with the "script" type of metadata. This type is for declaring a script's dependency in order to allow single-file scripts where a tool can install the dependencies on demand (just like pythonrunscript does!).
 
-The script type syntax uses a TOML-like syntax and allows specifying both PyPI requirements and the required python version. As far as I know, the  `uv` tool is the only tool which currently this "script" syntax right now, and actually enables single-file scripts.
+The script type metadata syntax uses a TOML-like syntax for the enveloped content. This content allows specifying both PyPI requirements and the required python version. As far as I know, `uv` is the only tool which now supports this "script" syntax and runs single-file scripts which use it.
+
+But of course pythonrunscript has been doing this same sort of thing for ages, before `uv` added this functionality. (By "ages" I mean roughly 1 month, lol.)
 
 So should _you_ use `uv` or pythonrunscript?
 
 I'd say that `uv` is better choice if (1) you're already using it or don't mind installing it, (2) you don't mind writing your dependencies as a TOML fragment, (3) you value `uv`'s vastly superior performance, and (4) you trust in the stability/longevity of that tool.
 
-I think pythonrunscript might suit you better if (1) you need conda dependencies, (2) you don't want to require your users to install `uv`, (3) you want to re-use existing tooling and existing metadata definitions exactly, (4) you prefer a tool that's simple enough that you could debug it and understand it yourself, rather than counting on someone else to maintain it.
+I think pythonrunscript might suit you better if (1) you need conda dependencies, (2) you don't want to require your users to install `uv` but are happy to require `pythonrunscript`, (3) you want to re-use existing tooling and metadata definitions exactly (via pip and conda), or (4) you prefer a tool that's simple enough that you can debug it and understand it yourself rather than counting on someone else to maintain it.
 
-Personally, I plan to keep using this until something else works as naturally with conda. I will probably also update it to support PEP723, not by supporting the "script" type, but by specializing the syntax with new TYPE values for the supported metadata kinds of `requirements.txt`, `environment.yml`, and `conda_install_specs.txt`. This is just for the sake of promoting a more orderly and consistent universe. 🤗
+I personally plan to keep using pythonrunscript until something else works as naturally with conda. I also plan to update it to support PEP723, not by supporting the "script" type, but by specializing its standard syntax with new TYPE values for the supported metadata kinds of `requirements.txt`, `environment.yml`, and `conda_install_specs.txt`. This is just for the sake of promoting a more orderly and consistent universe. 🤗
 
 
 
