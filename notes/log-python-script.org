@@ -258,3 +258,5 @@ Evolution?:
 - [ ] update CLI docs
 - [ ] update dry run mode
 - [ ] verify that TOML syntax for python version and pip versions matches conda install spec and reqs.txt syntax
+- [ ] enhance fork into environment with components installed through pip and conda
+
