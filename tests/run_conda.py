@@ -25,6 +25,7 @@ def conda_run_script(interpreter, script, args,conda_env_dir) -> NoReturn:
     logging.info(f'os.execvp({interpreter}, [{interpreter},{script}] + {args})')
     cmd = ["conda","run","--name",conda_env_dir,interpreter,script] + args
     print(f"os.execvp: {cmd=}")
+    sys.stdout.flush()
     os.execvp(cmd[0],cmd)
 
 if __name__ == "__main__":
