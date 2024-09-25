@@ -258,5 +258,94 @@ Evolution?:
 - [ ] update CLI docs
 - [ ] update dry run mode
 - [ ] verify that TOML syntax for python version and pip versions matches conda install spec and reqs.txt syntax
-- [ ] enhance fork into environment with components installed through pip and conda
+- [X] enhance fork into environment with components installed through pip and conda
+
+** [2024-09-20 Fri 20:33]
+
+run_ffmpeg:
+- run as executable, triggering pythonrunscript.py:
+  - BROKEN
+  - incorrectly tries to interpret the file not as python?
+  - does not interpreter just as if called by the python3 in the env
+    - but: calling =conda run -p /Users/alexis/Library/Caches/pythonrunscript/60b45f611c8f43cc4df61e1bd5157fd8/condaenv python3 run_ffmpeg.py= works
+
+- run from python3:
+  - works: runs as desired, as if =ffmpeg -version= was called directly
+- run from pythonrunscript.py:
+  - works: runs as desired, as if =ffmpeg -version= was called directly
+
+run_conda.py:
+- run from python3:
+  - 
+- run as executable:
+
+  
+** [2024-09-23 Mon 22:29] status
+
+- what behavior is desired?
+  - 
+- does workaround improve behavior?
+
+NO WRAPPER:
+
+test of =ffmpeg=:
+- =ffmpeg=:
+  - exits, with code 1
+- =./run_ffmpeg=:
+  -  exits with code 1, and a message emitted by conda saying:
+  - BAD: discrepancy. conda inserts a message
+- =pythonrunscript.py run_ffmpeg.py=:
+  - exits with code 1
+  - BAD: and a message emitted by conda saying. (same)
+
+test of =ffmpeg -version=:
+- =ffmpeg -version=:
+  - exits, with code 0
+- =./run_ffmpeg -version=:
+  - exits, with code 0
+  - BAD: conda intercepts the command line argument.
+- =pythonrunscript.py run_ffmpeg.py -version=:
+  - BAD: conda intercepts the command line argument.
+
+test of =python3=:
+- =./python3=:
+  - opens interactive prompt
+- =./run_python3.py=:
+  - VERY VERY BAD: exits immediately
+- =pythonrunscript ./run_python3.py=:
+  - without wrapper: opens interactive prompt
+  - with wrapper: 
+- =python3 ./run_python3.py=:
+  - opens interactive prompt
+  
+test of =python3 -V=:
+- =./python3 -V=:
+  - works
+- =./run_python3.py -V=:
+  - works
+- =pythonrunscript ./run_python3.py -V=:
+  - works
+
+WITH WRAPPER:
+
+- Finding: wrapper SUCCEEDS in fixing the problem that with -version.
+- wrapper does not prevent interpreter for quitting rather than opening a terminal
+- but wrapper did not cause that problem
+
+
+
+summary of non-transparencies:
+- =conda run= inserts a message when exit code == 1
+- conda intercepts command line arguments like "-version"
+  - fixed with wrapper
+- conda fails to run an interactive prommpt
+  - fixed with command line arg to conda --no-capture-output
+
+
+#+begin_src
+ERROR conda.cli.main_run:execute(125): `conda run /Users/alexis/Library/Caches/pythonrunscript/60b45f611c8f43cc4df61e1bd5157fd8/condaenv/bin/python3 ./run_ffmpeg.py` failed. (See above for error)
+#+end_src
+
+
+
 

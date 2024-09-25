@@ -480,13 +480,28 @@ def run_script(interpreter, script, args) -> NoReturn:
     logging.info(f'os.execvp({interpreter}, [{interpreter},{script}] + {args})')
     os.execvp(interpreter, [interpreter,script] + args)
 
-def conda_run_script(interpreter, script, args,conda_env_dir) -> NoReturn:
+def conda_run_script(interpreter, script, args, conda_env_dir) -> NoReturn:
     logging.info(
         f"using conda run to run {script} using {interpreter} with args: {args}"
     )
-    sys.stdout.flush()
     logging.info(f'os.execvp({interpreter}, [{interpreter},{script}] + {args})')
-    cmd = ["conda","run","-p",conda_env_dir,interpreter,script] + args
+    # to workaround the conda bug https://github.com/conda/conda/issues/13639
+    should_use_wrapper = True
+    if should_use_wrapper:
+        workaround_path = os.path.join(conda_env_dir,'exec_script')
+        with open(workaround_path,'w') as f:
+            workaround_script = f"exec {interpreter} {script}"
+            for arg in args:
+                workaround_script += f" {arg}"
+            workaround_script += "\n"
+            logging.info(f'builiding script with contents: {workaround_script}')
+            logging.info(f'writing script to path: {workaround_path}')
+            f.write(workaround_script)
+        os.chmod(workaround_path, 0o755)
+        cmd = ["conda","run","-p", conda_env_dir, "--no-capture-output", workaround_path]
+    else:
+        cmd = ["conda","run","-p", conda_env_dir, "--no-capture-output", interpreter,script] + args
+    sys.stdout.flush()
     os.execvp(cmd[0],cmd)
 
 #
