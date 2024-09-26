@@ -135,12 +135,12 @@ def perform_dry_run(proj):
             print(f"\t{make_conda_install_yml_command(proj.project_path,install_env_f)}\n")
         elif proj.conda_specs:
             print(f"## I found a conda_install_specs.txt block, so I'd use that.")
-            print(f"## To install conda dependencies, I'd execute this conda install command:\n")
+            print(f"## To install conda dependencies, I'd execute this conda install command:")
             install_spec_f = os.path.join(proj.project_path,'conda_install_specs.txt')
-            print(f"\t{make_conda_install_spec_command(proj.project_path, install_spec_f)}\n")
+            print(f"{make_conda_install_spec_command(proj.project_path, install_spec_f)}\n")
         if proj.pip_requirements:
-            print(f"## To install pip dependencies, I'd execute the following pip command:\n")
-            print(f"\tpython3 -m pip install -r {os.path.join(proj.envdir,'requirements.txt')}\n")
+            print(f"## To install pip dependencies, I'd execute the following pip command:")
+            print(f"python3 -m pip install -r {os.path.join(proj.envdir,'requirements.txt')}\n")
             print_python3_path()
     print(f"## At this point, this project directory would exist:\n{proj.project_path}\n")
     print(f"## I'd run using this env dir:\n{proj.envdir}\n")
@@ -195,7 +195,7 @@ def parse_dependencies(script, verbose=False) -> tuple[str,str,str,str]:
     # transforming to strip # prefix
     comments = open(script,'r').read()
     if verbose:
-        print(f"## Parsing this script for dependencies: {script}\n")
+        print(f"## Parsing this script for dependencies:\n{script}")
         print()
     
     for (block_type, boxed_content, begend_pairs) in block_type_content_delimiters:
@@ -205,7 +205,9 @@ def parse_dependencies(script, verbose=False) -> tuple[str,str,str,str]:
             if match:
                 if verbose:
                     print(f"### Extracted this {block_type} comment block:\n")
-                    print(textwrap.indent(match.group('content'),'\t'))
+                    s = '\n'.join([(line[2:] if len(line)>1 else "")
+                                   for line in match.group('content').split('\n')])
+                    print(textwrap.indent(s,'\t'))
                     print()
                 if block_type == 'script':
                     (pip_env, conda_env) = parse_script_toml(extract_content(match))
