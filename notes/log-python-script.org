@@ -256,7 +256,7 @@ Evolution?:
 
 - [ ] update README.
 - [ ] update CLI docs
-- [ ] update dry run mode
+- [X] update dry run mode
 - [ ] verify that TOML syntax for python version and pip versions matches conda install spec and reqs.txt syntax
 - [X] enhance fork into environment with components installed through pip and conda
 
