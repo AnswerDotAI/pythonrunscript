@@ -254,8 +254,8 @@ Evolution?:
 
 ** [2024-09-12] next steps
 
-- [ ] update README.
-- [ ] update CLI docs
+- [X] update README.
+- [X] update CLI docs
 - [X] update dry run mode
 - [ ] verify that TOML syntax for python version and pip versions matches conda install spec and reqs.txt syntax
 - [X] enhance fork into environment with components installed through pip and conda
@@ -349,3 +349,14 @@ ERROR conda.cli.main_run:execute(125): `conda run /Users/alexis/Library/Caches/p
 
 
 
+** [2024-10-07 Mon 15:43]
+
+next steps:
+
+- [ ] re-run examples as tests
+- [ ] add meatier examples?
+- [ ] update versioning metadata
+- [ ] copy script to binary
+- [ ] deploy to pypi
+
+  
