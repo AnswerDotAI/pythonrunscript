@@ -3,23 +3,23 @@
 `pythonrunscript` lets you
 
 - define and run **single-file python scripts**
-- which **can use external dependencies** from pip or conda
-- while **automatically installing dependencies into isolated environments**
+- which **automatically install needed dependencies into isolated environments**
+- while **using normal external dependencies** from pip or conda
 
 ## How to use pythonrunscript
 
 pythonrunscript lets you declare your script’s dependencies in the script itself.
 
-That is, the goal is to let you build and use scripts that *just run*, with no setup.
+This is in order to let you build and use scripts that *just run*, with no environment setup.
 
-To declare your script’s pip dependencies, add a *pip requirements.txt block* to your script’s comments. This is a comment block which specifies the script’s external requirements, delimited by markdown code fencing, using the exact syntax of a pip requirements.txt file. Here below, the block declares a dependency on the pip package tqdm.
+To declare your script’s pip dependencies, add a *pip requirements block* to your script’s comments. This is a comment block which embeds a normal pip requirements.txt file into script, by using Python's syntax for [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/#inline-script-metadata). Here below, the block declares a dependency on the pip package `tqdm`.
 
 ``` python
 #!/usr/bin/env pythonrunscript
 #
-# ```requirements.txt:
+# /// pythonrunscript-requirements-txt
 # tqdm==4.66.4
-# ```
+# ///
 #
 from tqdm import tqdm
 import sys
@@ -30,13 +30,13 @@ for i in tqdm(range(10000)):
 print("Phew. That was fun!")
 ```
 
-The first time you run this script, pythonrunscript will parse its requirements.txt block, create an isolated environment in a cache directory, install its dependencies, and run the script from that environment. In later runs, it will just re-use that environment. To create the environment it uses venv, which is built into python, so the only requirement to use pythonrunscript is that python itself is already installed.
+The first time you run this script, pythonrunscript will extract the embedded requirements.txt file, create an isolated environment in a cache directory, install its dependencies, and run the script from that environment. In later runs, it will just re-use that environment. To create the environment it uses venv, which is built into python, so the only requirement to use pythonrunscript is that python itself is already installed.
 
 To run your script, call it with `pythonrunscript hello.py`.
 
 Or, to run your script directly by doing `./hello.py`, change your script’s first line, the shebang line, to the following: `#!/usr/bin/env pythonrunscript`.
 
-How would this affect normal execution? It won’t. If you script doesn't have a pip requirements.txt block, pythonrunscript will simply pass it to python3 for execution as usual.
+How does this affect normal execution? It doesn't. If you script doesn't have a pip requirements.txt block, pythonrunscript will simply pass it to python3 for execution as usual. And if you run the script with `python3 hello.py`, then these special comments are ignored like all other comments. The upshot is that if you modify a script to be run by pythonrunscript, it can still be run as usual 
 
 ## Installation and Requirements
 
@@ -57,20 +57,20 @@ Run with `--verbose` to hear copious commentary, and to see all output of subpro
 
 Some popular dependencies, like [cudatoolkit](https://developer.nvidia.com/cuda-toolkit), cannot be installed by pip but need conda.
 
-To specify conda dependencies, you must add a *conda environment.yml block* or a *conda_install_specs_.txt block*. You may use this instead of, or in addition to, a pip requirements.txt block. They use two other types of fenced comment blocks. The environment block is intoduced by ```` ```environment.yml ```` and it should contain an environment.yml file verbatim.
+To specify conda dependencies, you must add a *conda environment.yml block* or a *conda_install_specs_.txt block*. You may use this instead of, or in addition to, a pip requirements.txt block. They use two other types of fenced comment blocks. The environment block is intoduced by ```` /// pythonrunscript-environment-yml ```` and it should contain an environment.yml file verbatim.
 
-The install spec block is introduced by ```` ```conda_install_specs.txt ```` block, and it should introduce conda install specs. A conda install spec is simply the string passed to the `conda install` command. Conda documents the [exact syntax for a conda install spec](https://conda.io/projects/conda/en/latest/user-guide/concepts/pkg-search.html), which only requires naming the conda package, but also allows specifying the version, the channel, or specific builds.
+The install spec block is introduced by ```` /// pythonrunscript-conda-install-specs-txt ```` block, and it should introduce conda install specs. A conda install spec is simply the string passed to the `conda install` command. Conda documents the [exact syntax for a conda install spec](https://conda.io/projects/conda/en/latest/user-guide/concepts/pkg-search.html), which only requires naming the conda package, but also allows specifying the version, the channel, or specific builds.
 
 For instance, this script uses a conda environment.yml block:
 
 ``` python
 #!/usr/bin/env pythonrunscript
 #
-# ```environment.yml
+# /// pythonrunscript-environment-yml
 # dependencies:
 #   - python=3.10
 #   - numpy
-# ```
+# ///
 #
 import numpy
 import sys
@@ -83,10 +83,10 @@ And this script uses a conda install specs block, for the same dependencies:
 ``` python
 #!/usr/bin/env pythonrunscript
 #
-# ```conda_install_specs.txt
+# /// pythonrunscript-conda-install-specs-txt
 # python=3.10
 # numpy
-# ```
+# ///
 #
 from tqdm import tqdm
 import sys
@@ -132,33 +132,74 @@ Hopefully, this tool helps. The dependency syntaxes which it uses are exactly th
 
 Great, then, this is not for you. 😇 Cultivate your garden.
 
+
+## Wait, is pythonrunscript an implementation of PEP-723? The same as tools like `uv`?
+
+Good questions! The answers are yes and no. Here is the situation.
+
+PEP-723 defines the official syntax for embedding _any kind of metadata_ in a Python script.
+
+It also shows _one_ particular implementation of that standard, with the "script" type of metadata. This is a metadata block introduced by the opening delimiter ```` /// script ````. Here's an example of a script with such a block:
+
+``` python
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "numpy",
+# ]
+# ///
+#
+import numpy
+import sys
+
+print("I depend on numpy")
+```
+
+As you can see, the "script" metadata type requires a TOML-like syntax, and it lets you declare pip dependencies (like `numpy`) as well as a required version of python (like `3.11`). When a Python script has this "script" type metadata, a compliant tool _can_ use it to run the Python script as a single-file script, by reading the metadata, fetching the dependencies, and running the script in an isolated environment containing those dependencies.
+
+`pythonrunscript` will do this. It consumes the "script" metadata type. If the "script" metadata only declares pip dependencies, pythonrunscript just uses pip to install them. If it also declares a required python version, then pythonrunscript requires that you have conda installed, since it will use conda to manage the python version itself.
+
+Another tool (at the time of this writing, the only other tool?) which supports this "script" metadata type is [uv](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies), which is excellent and which I highly recommend. It doesn't rely on conda.
+
+Bu in addition to the "script" type metadata, PEP-723 also defines the syntax by which you can define _other_ metadata types. pythonrunscript also defines the following types:
+
+- `pythonrunscript-requirements-txt`, which lets you embed a standard `requirements.txt` file
+- `pythonrunscript-conda-install-specs-txt`, which lets you embed a list of normal conda install specs
+- `pythonrunscript-environment-yml`, which lets you embed a normal `environment.yml` file.
+
+In other words, pythonrunscript complies the required PEP-723 syntax for embedding inline metadata, complies with its mechanism for defining particular types of inline metadata, and defines three types which simply represent embeeding exactly the dependency files which we people already use.
+
+## Alternatives: `uv`
+
+I'd say that pythonrunscript is a better choice if:
+
+- You want to describe your dependencies using exactly the files and formats you already use.
+- You need certain dependencies available only on conda, such as substantial executable like `ffmpeg` for video transcoding, `poppler` for processing PDFs, or various heavier ML components.
+- You like using a tool which requires only python, and possibly conda, and which does not introduce much that is new or hard to inspect. (pythonrunscript itself is less than 600 lines of Python.)
+
+Given that both pythonrunscript and uv support the "script" type metadata, which should you use?
+
+I'd say that `uv` is better choice if:
+
+- You don't mind writing your dependencies as TOML fragments.
+- You don't need conda-only dependencies.
+- You value `uv`'s speed, which is much better.
+
+## Alternatives: pip.wtf
+
+I have not tried this but it seems like a great solution if you don't want your users or yourself to have to install anything new.
+
+It's beautifully simple, it's just eight lines of code which defines a function, whcih you add directly to your script. In your script, calling this function will install the script's dependencies and run it using them. This strikes me as perfect for certain use cases.
+
+However, it might not be approriate when you want your script to run like a normal script by default, e.g., not to install dependencies when you just run it with the normal interpreter, or when you need conda because your project depends on conda-only dependencies.
+
+
 ## Inspiration and related projects
 
+- [pip.wtf](https://pip.wtf), as mentioned above.
+- [uv](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies), as mentioned above.
+- [PEP-723](https://peps.python.org/pep-0723/) defines a standard, general syntax for different types of *inline script metadata*. This lets you embed metadata into a script's comments (just like pythonrunscript does). 
 - [swift-sh](https://github.com/mxcl/swift-sh) does the same trick for Swift
 - [rust-script](https://rust-script.org) does the same trick for rust
 - [scriptisto](https://github.com/igor-petruk/scriptisto) does this for any language, but at the cost of shifting the complexity into the comment block.
-- [pip.wtf](https://pip.wtf), a cry from the heart, a piece of beautiful simplicity, just eight lines of code which defines a function. In a Python script, calling this function will install the script's dependencies and run in an environment defined by them. This strikes me as perfect for many use cases. However, it might not be approriate when (1) you need conda because your project depends on conda-only dependencies or (2) you want your script to run like a normal script by default, e.g., not to install dependencies when you just run it with the normal interpreter.
-- [uv](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies) reads the new PEP-723 *inline script metadata*, supporting TYPE=script, as I will describe below.
-- [PEP-723](https://peps.python.org/pep-0723/) defines a standard, general syntax for different types of *inline script metadata*. This lets you embed metadata into a script's comments (just like pythonrunscript does). 
-
-## Wait, is pythonrunscript an implementation of PEP-723? In conflict with it? Superfluous in the light of `uv`?
-
-Good question! Here's the situation afaict.
-
-The PEP defines a standard syntax for embedded metadata. It _also_ shows one particular implementation of that standard, with the "script" type of metadata. This type is for declaring a script's dependency in order to allow single-file scripts where a tool can install the dependencies on demand (just like pythonrunscript does!).
-
-The script type metadata syntax uses a TOML-like syntax for the enveloped content. This content allows specifying both PyPI requirements and the required python version. As far as I know, `uv` is the only tool which now supports this "script" syntax and runs single-file scripts which use it.
-
-But of course pythonrunscript has been doing this same sort of thing for ages, before `uv` added this functionality. (By "ages" I mean roughly 1 month, lol.)
-
-So should _you_ use `uv` or pythonrunscript?
-
-I'd say that `uv` is better choice if (1) you're already using it or don't mind installing it, (2) you don't mind writing your dependencies as a TOML fragment, (3) you value `uv`'s vastly superior performance, and (4) you trust in the stability/longevity of that tool.
-
-I think pythonrunscript might suit you better if (1) you need conda dependencies, (2) you don't want to require your users to install `uv` but are happy to require `pythonrunscript`, (3) you want to re-use existing tooling and metadata definitions exactly (via pip and conda), or (4) you prefer a tool that's simple enough that you can debug it and understand it yourself rather than counting on someone else to maintain it.
-
-I personally plan to keep using pythonrunscript until something else works as naturally with conda. I also plan to update it to support PEP723, not by supporting the "script" type, but by specializing its standard syntax with new TYPE values for the supported metadata kinds of `requirements.txt`, `environment.yml`, and `conda_install_specs.txt`. This is just for the sake of promoting a more orderly and consistent universe. 🤗
-
-
-
 
