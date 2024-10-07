@@ -159,7 +159,7 @@ As you can see, the "script" metadata type requires a TOML-like syntax, and it l
 
 `pythonrunscript` will do this. It consumes the "script" metadata type. If the "script" metadata only declares pip dependencies, pythonrunscript just uses pip to install them. If it also declares a required python version, then pythonrunscript requires that you have conda installed, since it will use conda to manage the python version itself.
 
-Another tool (at the time of this writing, the only other tool?) which supports this "script" metadata type is [uv](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies), which is excellent and which I highly recommend. It doesn't rely on conda.
+Another tool (at the time of this writing, the only other tool?) which supports this "script" metadata type is [uv](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies), which is excellent and which I would recommend. It doesn't rely on conda.
 
 Bu in addition to the "script" type metadata, PEP-723 also defines the syntax by which you can define _other_ metadata types. pythonrunscript also defines the following types:
 
@@ -167,9 +167,11 @@ Bu in addition to the "script" type metadata, PEP-723 also defines the syntax by
 - `pythonrunscript-conda-install-specs-txt`, which lets you embed a list of normal conda install specs
 - `pythonrunscript-environment-yml`, which lets you embed a normal `environment.yml` file.
 
-In other words, pythonrunscript complies the required PEP-723 syntax for embedding inline metadata, complies with its mechanism for defining particular types of inline metadata, and defines three types which simply represent embeeding exactly the dependency files which we people already use.
+In other words, pythonrunscript complies with the PEP-723 syntax for embedding inline metadata, complies with its mechanism for defining particular types of inline metadata, and defines three types which represent embedding the dependency file types which people already use right now.
 
 ## Alternatives: `uv`
+
+`uv` also supports PEP-723, but only the "script" metadata type. So which should you use?
 
 I'd say that pythonrunscript is a better choice if:
 
@@ -181,18 +183,17 @@ Given that both pythonrunscript and uv support the "script" type metadata, which
 
 I'd say that `uv` is better choice if:
 
-- You don't mind writing your dependencies as TOML fragments.
+- You don't mind rewriting your dependencies as TOML fragments.
 - You don't need conda-only dependencies.
 - You value `uv`'s speed, which is much better.
 
 ## Alternatives: pip.wtf
 
-I have not tried this but it seems like a great solution if you don't want your users or yourself to have to install anything new.
+I have not tried this but it seems like a great solution if you don't want your users or yourself to have to install anything new at all. (yes!)
 
-It's beautifully simple, it's just eight lines of code which defines a function, whcih you add directly to your script. In your script, calling this function will install the script's dependencies and run it using them. This strikes me as perfect for certain use cases.
+It's beautifully simple. It's just eight lines of code which defines a function whcih you then add directly to your script. In your script, calling this function will install the script's dependencies and run it using them. This strikes me as perfect for certain use cases.
 
 However, it might not be approriate when you want your script to run like a normal script by default, e.g., not to install dependencies when you just run it with the normal interpreter, or when you need conda because your project depends on conda-only dependencies.
-
 
 ## Inspiration and related projects
 
