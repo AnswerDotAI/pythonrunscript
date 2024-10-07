@@ -17,45 +17,42 @@ def main():
     parser.add_argument('--clean-cache', action='store_true', help='purges all pythonrunscript environments')
     parser.add_argument('script', nargs='?', default=None, help='path to the script to run')
     parser.add_argument('arguments', nargs=argparse.REMAINDER, help='optional arguments to be passed to that script')
-    parser.epilog='''    pythonrunscript runs Python scripts, handling their dependencies.
+    parser.epilog='''    pythonrunscript runs Python scripts, installing their dependencies.
 
-    To be exact, it will automatically install any needed dependencies in an
-    isolated environment dedicated to your script (and possibly to other scripts
-    with exactly identical dependencies).
+    That is, it will automatically install all dependencies in an isolated
+    environment dedicated to your script (and shared with any other scripts
+    with the same dependencies), or use that environment if it already exists.
 
-    To do this it relies on your script having comments which declare its dependencies.
-    
-    You can use pythonrunscript to call your script directly (e,g, running
-    `./pythonrunscript myscript.py`), or by changing your script's shebang to be
-    pythonrunscript (e.g., setting your script's first line to
-    "#!/usr/bin/env pythonrunscript").
-    
-    To find the dependencies, pythonrunscript parses your script's pre-code comment
-    lines to find three kinds of dependency blocks: a requirements.txt block (for pip
-    dependencies), or an environment.yml or conda_install_specs.txt block (for
-    conda dependencies).
+    To do this it looks in your script for a comment declaring dependencies
+    using the inline metadata syntax defined in PEP723. This syntax uses a "type"
+    tag to indicate the type of dependency meatadata.
 
-    A dependency block is defined by a single space of indentation and
-    markdown-style code fences, including the file name which defines that type of
-    block. So, for instance, you could add these comments to the head of your script
-    before any code, to declare a dependency on tqdm:
+    With pythonrunscript, you use the type tag pythonrunscript-requirements-txt in
+    order to embed an ordinary requirements.txt file, like so:
 
-    # ```requirements.txt
+    # /// pythonrunscript-requirements-txt
     # tqdm=4.66.4
-    # ```
+    # ///
 
-    The fencing syntax is analogous for environment.yml and conda_install_specs.txt
-    blocks. An environment.yml block should contain an environment.yml file.
-    Every line on a conda_intall_specs.txt block should be a "conda install spec",
-    which is just the syntax used for arguments passed to `conda install`. It is
-    documented here:
+    You can also use the type pythonrunscript-environment-yml to embed an environment.yml
+    file, or pythonrunscript-conda-install-specs-txt to embed a list of conda
+    conda install specs. A conda install spec is just the syntax for
+    arguments passed to `conda install`. It is documented here:
     https://conda.io/projects/conda/en/latest/user-guide/concepts/pkg-search.html
 
     To run a script with conda dependencies, you must already have conda installed.
 
-    pythonrunscript works on Python 3.9.6 and later, which ships with macOS Sonoma.
-    Since it creates isolated environments, you can run it using that system
-    Python without corrupting the system Python.It also works on Linux, but not Windows.
+    Finally, pythonrunscript supports the "script" type, which is the TOML-like syntax
+    given as an initial example in PEP723.
+
+    You can explicitly call pythonrunscript to run your script by doing
+    `pythonrunscript myscript.py`. Or you can change your script's first line to use
+    pythonrunscript as an interpreter (setting its first line to
+    "#!/usr/bin/env pythonrunscript"), and then execute your script directly.
+
+    pythonrunscript requires Python 3.9.6 and later, which ships with macOS Sonoma.
+    Since it creates isolated environments, you can run it using the system's
+    Python without corrupting the system. It also works on Linux. Untested on Windows.
     '''
     args = parser.parse_args()
 
