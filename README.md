@@ -172,7 +172,7 @@ What else is out there, to solve this problem of "I just want a single-file I ca
 
 ### `uv`
 
-Another tool which supports PEP732 is [uv](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies). It is is excellent and I would recommend it. But it only the "script" metadata type.
+Another tool which supports PEP732 is [uv](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies). It is is excellent and I would recommend it. But it only implements the "script" metadata type.
 
 Compared to pythonrunscript, I'd say that `uv` is better choice if:
 
