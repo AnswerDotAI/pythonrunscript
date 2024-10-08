@@ -355,7 +355,8 @@ next steps:
 
 - [ ] re-run examples as tests
 - [ ] add meatier examples?
-- [ ] update versioning metadata
+- [X] update versioning metadata
+- [x] add versioning to CLT  
 - [ ] copy script to binary
 - [ ] deploy to pypi
 
