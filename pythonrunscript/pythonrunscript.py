@@ -22,31 +22,37 @@ def main():
     parser.add_argument('arguments', nargs=argparse.REMAINDER, help='optional arguments to be passed to that script')
     parser.epilog='''    pythonrunscript runs Python scripts, installing their dependencies.
 
-    That is, it will automatically install all dependencies in an isolated
-    environment dedicated to your script (and shared with any other scripts
-    with the same dependencies), or use that environment if it already exists.
+    That is, it will automatically install all dependencies in a cached, isolated
+    environment dedicated to your script, and run it in that environment.
 
     To do this it looks in your script for a comment declaring dependencies
     using the inline metadata syntax defined in PEP723. This syntax uses a "type"
     tag to indicate the type of dependency meatadata.
 
-    With pythonrunscript, you use the type tag pythonrunscript-requirements-txt in
-    order to embed an ordinary requirements.txt file, like so:
+    You use the type tag pythonrunscript-requirements-txt in order to embed an
+    ordinary requirements.txt file, like so:
 
     # /// pythonrunscript-requirements-txt
     # tqdm=4.66.4
     # ///
 
-    You can also use the type pythonrunscript-environment-yml to embed an environment.yml
-    file, or pythonrunscript-conda-install-specs-txt to embed a list of conda
-    conda install specs. A conda install spec is just the syntax for
-    arguments passed to `conda install`. It is documented here:
+    You can also use the type pythonrunscript-environment-yml to embed an
+    environment.yml file, or pythonrunscript-conda-install-specs-txt to embed a list
+    of conda install specs. A conda install spec is just the syntax for arguments
+    passed to `conda install`. It is documented here:
     https://conda.io/projects/conda/en/latest/user-guide/concepts/pkg-search.html
 
-    To run a script with conda dependencies, you must already have conda installed.
+    To run a script with conda dependencies or which specifies the python version,
+    you must already have conda installed.
 
-    Finally, pythonrunscript supports the "script" type, which is the TOML-like syntax
-    given as an initial example in PEP723.
+    Finally, pythonrunscript also supports the "script" type, which is the TOML-like
+    syntax given as an initial example in PEP723. It looks like so:
+
+    # /// script
+    # dependencies = [
+    #   "tqdm==4.66.4",
+    # ]
+    # ///
 
     You can explicitly call pythonrunscript to run your script by doing
     `pythonrunscript myscript.py`. Or you can change your script's first line to use
