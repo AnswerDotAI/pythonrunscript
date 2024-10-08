@@ -33,7 +33,7 @@ def main():
     ordinary requirements.txt file, like so:
 
     # /// pythonrunscript-requirements-txt
-    # tqdm=4.66.4
+    # tqdm==4.66.4
     # ///
 
     You can also use the type pythonrunscript-environment-yml to embed an
