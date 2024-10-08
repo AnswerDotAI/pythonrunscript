@@ -152,11 +152,9 @@ import sys
 print("I depend on numpy")
 ```
 
-As you can see, the "script" metadata type requires a TOML-like syntax, and it lets you declare pip dependencies (like `numpy`) as well as a required version of python (like `3.11`). When a Python script has this "script" type metadata, a compliant tool _can_ use it to run the Python script as a single-file script, by reading the metadata, fetching the dependencies, and running the script in an isolated environment containing those dependencies.
+As you can see, the "script" metadata type requires a TOML-like syntax, and it lets you declare pip dependencies (like `numpy`) as well as a required version of python (like `3.11`). When a Python script has this "script" type metadata, a compliant tool can use it to run the Python script as a single-file script, by reading the metadata, fetching the dependencies, and running the script in an isolated environment containing those dependencies.
 
-`pythonrunscript` will do this. It recognizes the "script" metadata type. If the "script" metadata only declares pip dependencies, pythonrunscript just uses pip to install them. If it also declares a required python version, then pythonrunscript uses conda to manage the python version itself.
-
-Another tool (at the time of this writing, the only other tool?) which supports this "script" metadata type is [uv](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies). It is is excellent and I would recommend it.
+`pythonrunscript` does this. It recognizes the "script" metadata type. If the "script" metadata only declares pip dependencies, pythonrunscript just uses pip to install them. If it also declares a required python version, then pythonrunscript uses conda to manage the python version itself.
 
 But in addition to the "script" type metadata, PEP-723 also specifies how tools can define _other_ metadata types. pythonrunscript also defines the following types:
 
@@ -164,9 +162,9 @@ But in addition to the "script" type metadata, PEP-723 also specifies how tools 
 - `pythonrunscript-conda-install-specs-txt`, which lets you embed a list of normal conda install specs.
 - `pythonrunscript-environment-yml`, which lets you embed a normal `environment.yml` file.
 
-In other words, pythonrunscript implements the PEP-723 syntax for embedding inline metadata, and also implements its mechanism for defining particular types of inline metadata, by defining three types which represent embedding the dependency file types which people already use right now.
+In other words, pythonrunscript implements the PEP723 syntax for embedding inline metadata, implements the recommended "script" metadata type, and also implements PEP723's mechanism for defining particular types of inline metadata. It defines three types which represent embedding the popular dependency file types which you might be using already.
 
-(In addition, pythonrunscript also supports a legacy syntax for embedding metadata, based on markdown-style code fences. I designed it to use this syntax before I realized that PEP723 existed! It is now deprecated.)
+(In addition, pythonrunscript also supports a legacy syntax for embedding metadata in terms of  markdown-style code fences. I designed it to use this syntax before I realized that PEP723 existed! It is now deprecated.)
 
 ## Comparable solutions
 
@@ -174,7 +172,7 @@ What else is out there, to solve this problem of "I just want a single-file I ca
 
 ### `uv`
 
-The [uv](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies) tool does a lot. It also supports PEP-723, but only the "script" metadata type.
+Another tool which supports PEP732 is [uv](https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies). It is is excellent and I would recommend it. But it only the "script" metadata type.
 
 Compared to pythonrunscript, I'd say that `uv` is better choice if:
 
@@ -190,7 +188,7 @@ On the other hand, pythonrunscript might be a better choice if:
 
 ###  pip.wtf
 
-I haven't tried this but it seems like a great solution if you want your scripts to have zero install-time dependencies, not even pythonrunscript itself.
+I haven't tried this but it seems like an inspired solution if you want your scripts to have zero install-time dependencies, not even pythonrunscript itself.
 
 It's just eight lines of code which defines a function which you then add directly to your script. In your script, calling this function will install the script's dependencies and run it using them. Beautiful.
 
