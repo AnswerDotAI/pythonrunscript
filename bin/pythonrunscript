@@ -1,61 +1,61 @@
 #!/usr/bin/env python3
-# python>3.9.6
+# python>=3.9.6
 import sys, re, os, subprocess, hashlib, logging, platform, argparse, tempfile, shutil, uuid, textwrap, shlex
 from abc import ABC
 from enum import Enum
-from typing import NoReturn, Tuple, Union
+from typing import NoReturn, Union
 
 logging.basicConfig(level=logging.WARNING)
 Log = Enum('Log', ['SILENT','ERRORS','VERBOSE'])
+
+version_str = "0.2.0 (2024-10-07)"
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.description='Runs a script, installing its dependencies in a cached, isolated environment'
     parser.add_argument('--dry-run',    action='store_true', help='report what pythonrunscript would do, without writing any files')
+    parser.add_argument('--version',    action='store_true', help='prints current version')
     parser.add_argument('--verbose',    action='store_true', help='comments on actions and prints all outputs and errors')
     parser.add_argument('--show-cache', action='store_true', help='print the cache directory of script environments')
     parser.add_argument('--clean-cache', action='store_true', help='purges all pythonrunscript environments')
     parser.add_argument('script', nargs='?', default=None, help='path to the script to run')
     parser.add_argument('arguments', nargs=argparse.REMAINDER, help='optional arguments to be passed to that script')
-    parser.epilog='''    pythonrunscript runs Python scripts, handling their dependencies.
+    parser.epilog='''    pythonrunscript runs Python scripts, installing their dependencies.
 
-    To be exact, it will automatically install any needed dependencies in an
-    isolated environment dedicated to your script (and possibly to other scripts
-    with exactly identical dependencies).
+    That is, it will automatically install all dependencies in an isolated
+    environment dedicated to your script (and shared with any other scripts
+    with the same dependencies), or use that environment if it already exists.
 
-    To do this it relies on your script having comments which declare its dependencies.
-    
-    You can use pythonrunscript to call your script directly (e,g, running
-    `./pythonrunscript myscript.py`), or by changing your script's shebang to be
-    pythonrunscript (e.g., setting your script's first line to
-    "#!/usr/bin/env pythonrunscript").
-    
-    To find the dependencies, pythonrunscript parses your script's pre-code comment
-    lines to find three kinds of dependency blocks: a requirements.txt block (for pip
-    dependencies), or an environment.yml or conda_install_specs.txt block (for
-    conda dependencies).
+    To do this it looks in your script for a comment declaring dependencies
+    using the inline metadata syntax defined in PEP723. This syntax uses a "type"
+    tag to indicate the type of dependency meatadata.
 
-    A dependency block is defined by a single space of indentation and
-    markdown-style code fences, including the file name which defines that type of
-    block. So, for instance, you could add these comments to the head of your script
-    before any code, to declare a dependency on tqdm:
+    With pythonrunscript, you use the type tag pythonrunscript-requirements-txt in
+    order to embed an ordinary requirements.txt file, like so:
 
-    # ```requirements.txt
+    # /// pythonrunscript-requirements-txt
     # tqdm=4.66.4
-    # ```
+    # ///
 
-    The fencing syntax is analogous for environment.yml and conda_install_specs.txt
-    blocks. An environment.yml block should contain an environment.yml file.
-    Every line on a conda_intall_specs.txt block should be a "conda install spec",
-    which is just the syntax used for arguments passed to `conda install`. It is
-    documented here:
+    You can also use the type pythonrunscript-environment-yml to embed an environment.yml
+    file, or pythonrunscript-conda-install-specs-txt to embed a list of conda
+    conda install specs. A conda install spec is just the syntax for
+    arguments passed to `conda install`. It is documented here:
     https://conda.io/projects/conda/en/latest/user-guide/concepts/pkg-search.html
 
     To run a script with conda dependencies, you must already have conda installed.
 
-    pythonrunscript works on Python 3.9.6 and later, which ships with macOS Sonoma.
-    Since it creates isolated environments, you can run it using that system
-    Python without corrupting the system Python.It also works on Linux, but not Windows.
+    Finally, pythonrunscript supports the "script" type, which is the TOML-like syntax
+    given as an initial example in PEP723.
+
+    You can explicitly call pythonrunscript to run your script by doing
+    `pythonrunscript myscript.py`. Or you can change your script's first line to use
+    pythonrunscript as an interpreter (setting its first line to
+    "#!/usr/bin/env pythonrunscript"), and then execute your script directly.
+
+    pythonrunscript requires Python 3.9.6 and later, which ships with macOS Sonoma.
+    Since it creates isolated environments, you can run it using the system's
+    Python without corrupting the system. It also works on Linux. Untested on Windows.
     '''
     args = parser.parse_args()
 
@@ -63,6 +63,9 @@ def main():
         print(f"I am being interpreted by Python version:\n{sys.version}")  # pyright: ignore
         print("But I need python version 3.9.6 or higher.\nAborting.") # pyright: ignore
         exit(1)         # pyright: ignore
+    elif args.version:
+        print(f"pythonrunscript {version_str}")
+        exit(0)
     elif are_dependencies_missing():
         print(f"I am being run on the platform {platform.system()} and")
         print("I cannot find the required external commands bash and tee, so")
@@ -126,7 +129,7 @@ def perform_dry_run(proj):
         print_python3_path()
         return
     elif not proj.exists():
-        print("## The needed project directory does not exist so I would create this project directory:\n{proj.project_path}\n")
+        print(f"## The needed project directory does not exist so I would create this project directory:\n{proj.project_path}\n")
         print(f"## Inside, I would create this environment directory:\n{proj.envdir}\n")
         if proj.conda_envyml:
             print(f"## I found an environment.yml dependency block, so I'd use that.")
@@ -135,148 +138,125 @@ def perform_dry_run(proj):
             print(f"\t{make_conda_install_yml_command(proj.project_path,install_env_f)}\n")
         elif proj.conda_specs:
             print(f"## I found a conda_install_specs.txt block, so I'd use that.")
-            print(f"## To install conda dependencies, I'd execute this conda install command:\n")
+            print(f"## To install conda dependencies, I'd execute this conda install command:")
             install_spec_f = os.path.join(proj.project_path,'conda_install_specs.txt')
-            print(f"\t{make_conda_install_spec_command(proj.project_path, install_spec_f)}\n")
+            print(f"{make_conda_install_spec_command(proj.project_path, install_spec_f)}\n")
         if proj.pip_requirements:
-            print(f"## To install pip dependencies, I'd execute the following pip command:\n")
-            print(f"\tpython3 -m pip install -r {os.path.join(proj.envdir,'requirements.txt')}\n")
+            print(f"## To install pip dependencies, I'd execute the following pip command:")
+            print(f"python3 -m pip install -r {os.path.join(proj.envdir,'requirements.txt')}\n")
             print_python3_path()
     print(f"## At this point, this project directory would exist:\n{proj.project_path}\n")
     print(f"## I'd run using this env dir:\n{proj.envdir}\n")
     return
 
-def parse_dependencies(script, verbose=False) -> Tuple[str,str,str,str]:
+def parse_dependencies(script, verbose=False) -> tuple[str,str,str,str]:
     "Parses script and returns any conda or pip dep blocks"
-    # grab until first non-comment, non-empty line
-    comment_head = []
-    with open(script,'r') as file:
-        for line in file:
-            lstrip = line.strip()
-            if lstrip == '': pass
-            elif lstrip.startswith('# '):
-                comment_head.append(lstrip[2:])
-            elif lstrip.startswith('#'): pass
-            else: break
+    LT = Enum('LT', [ 
+        'BEG_SCRIPT_YML',
+        'BEG_CONDA_SPEC_YML','BEG_CONDA_ENV_YML','BEG_PIP_YML','END_YML',
+        'BEG_CONDA_SPEC','BEG_CONDA_ENV','BEG_PIP','END',
+        'TEXT'])
+    
+    p = {
+        LT.BEG_SCRIPT_YML     : r"^# /// script$",
+        LT.BEG_CONDA_SPEC_YML : r"^# /// pythonrunscript-conda-install-specs-txt$",
+        LT.BEG_CONDA_ENV_YML  : r"^# /// pythonrunscript-environment-yml$",
+        LT.BEG_PIP_YML        : r"^# /// pythonrunscript-requirements-txt$",
+        LT.END_YML            : r"^# ///$",
+        LT.BEG_CONDA_SPEC     : r"^# ```conda_install_specs.txt$",
+        LT.BEG_CONDA_ENV      : r"^# ```environment.yml$",
+        LT.BEG_PIP            : r"^# ```requirements.txt$",
+        LT.END                : r"^# ```$",
+        LT.TEXT               : r"^#(| .*)$",
+    }
+
+    boxed_pip_block = ['']
+    boxed_conda_spec_block = ['']
+    boxed_conda_env_block = ['']
+
+    block_type_content_delimiters = [
+        ('script',[], [(LT.BEG_SCRIPT_YML,LT.END_YML)]),
+        ('requirements.txt', boxed_pip_block, [(LT.BEG_PIP_YML,LT.END_YML),
+                                               (LT.BEG_PIP,LT.END),]),
+        ('conda_install_specs.txt', boxed_conda_spec_block, [(LT.BEG_CONDA_SPEC_YML,LT.END_YML),
+                                                             (LT.BEG_CONDA_SPEC,LT.END),]),
+        ('environment.yml', boxed_conda_env_block, [(LT.BEG_CONDA_ENV_YML,LT.END_YML),
+                                                    (LT.BEG_CONDA_ENV,LT.END),]),
+    ]
+
+    def make_block_pattern(begend:tuple[LT,LT]) -> str:
+        (beg,end) = begend
+        return rf"(?m:{p[beg]}\s(?P<content>({p[LT.TEXT]}\s)+?){p[end]}(?:\s)?)"
+
+    def extract_content(match):
+        return ''.join(
+            line[2:] if line.startswith('# ') else line[1:]
+            for line in match.group('content').splitlines(keepends=True)
+        )
+
+    # collect all comment lines starting with "# " or equalling "#"
+    # transforming to strip # prefix
+    comments = open(script,'r').read()
     if verbose:
-        print(f"## Parsing this script for dependencies: {script}\n")
-        print("## Extracted this comment block for parsing:\n")
-        print(textwrap.indent('\n'.join(comment_head),'\t'))
+        print(f"## Parsing this script for dependencies:\n{script}")
         print()
-    bad_parse = False
-    collected_block = []
-    pip_block_valid = []
-    conda_spec_block_valid = []
-    conda_env_block_valid = []
     
-    PS = Enum('PS', ['OUT','IN_CONDA_SPEC','IN_CONDA_ENV','IN_PIP'])
-    LT = Enum('LT', [ 'BEG_CONDA_SPEC','BEG_CONDA_ENV','BEG_PIP','END','TEXT'])
+    for (block_type, boxed_content, begend_pairs) in block_type_content_delimiters:
+        for begend in begend_pairs:
+            block_pattern = make_block_pattern(begend)
+            match = re.compile(block_pattern).search(comments)
+            if match:
+                if verbose:
+                    print(f"### Extracted this {block_type} comment block:\n")
+                    s = '\n'.join([(line[2:] if len(line)>1 else "")
+                                   for line in match.group('content').split('\n')])
+                    print(textwrap.indent(s,'\t'))
+                    print()
+                if block_type == 'script':
+                    (pip_env, conda_env) = parse_script_toml(extract_content(match))
+                    boxed_pip_block[0] = pip_env
+                    boxed_conda_spec_block[0] = conda_env
+                    break
+                else:
+                    boxed_content[0] = extract_content(match)
+                break
     
-    def which(s):
-        pattern_dict = {LT.BEG_CONDA_SPEC : re.compile(r"^```conda_install_specs.txt$"),
-                        LT.BEG_CONDA_ENV  : re.compile(r"^```environment.yml$"),
-                        LT.BEG_PIP        : re.compile(r"^```requirements.txt$"),
-                        LT.END            : re.compile(r"^```$"),
-                        LT.TEXT           : re.compile(r"^(?P<data>.*)$")}
-        return next(((pat,r.match(s)) for (pat,r) in pattern_dict.items() if r.match(s)))
-
-    parser_state = PS.OUT
-    for line in comment_head:
-        (line_type,m) = which(line)
-        if parser_state == PS.OUT:
-            if line_type == LT.BEG_CONDA_SPEC:
-                parser_state = PS.IN_CONDA_SPEC
-            elif line_type == LT.BEG_CONDA_ENV:
-                parser_state = PS.IN_CONDA_ENV
-            elif line_type == LT.BEG_PIP:
-                parser_state = PS.IN_PIP
-        elif parser_state == PS.IN_CONDA_SPEC:
-            if line_type == LT.BEG_CONDA_SPEC:
-                # nested redundant begin
-                logging.info("Quitting parsing because of conda spec begin with a conda spec block")
-                bad_parse = True
-                break
-            if line_type == LT.BEG_CONDA_ENV:
-                logging.info("Quitting parsing because of conda begin env with a conda spec block")
-                bad_parse = True
-                break
-            elif line_type == LT.BEG_PIP:
-                logging.info("Quitting parsing because of pip begin within a conda block")
-                bad_parse = True
-                break
-            elif line_type == LT.END:
-                parser_state = PS.OUT
-                conda_spec_block_valid.extend(collected_block)
-                collected_block = []
-            elif line_type == LT.TEXT:
-                collected_block.append(m.group('data') if m else '')
-        elif parser_state == PS.IN_CONDA_ENV:
-            if line_type == LT.BEG_CONDA_ENV:
-                # nested redundant begin
-                logging.info("Quitting parsing because of conda begin env within a conda env block")
-                bad_parse = True
-                break
-            if line_type == LT.BEG_CONDA_SPEC:
-                logging.info("Quitting parsing because of conda begin spec within a conda env block")
-                bad_parse = True
-                break
-            elif line_type == LT.BEG_PIP:
-                logging.info("Quitting parsing because of pip begin within a conda block")
-                bad_parse = True
-                break
-            elif line_type == LT.END:
-                parser_state = PS.OUT
-                conda_env_block_valid.extend(collected_block)
-                collected_block = []
-            elif line_type == LT.TEXT:
-                collected_block.append(m.group('data') if m else '')
-        elif parser_state == PS.IN_PIP:
-            if line_type == LT.BEG_CONDA_SPEC:
-                logging.info("Quitting parsing because of conda begin spec within a pip block")
-                bad_parse = True
-                break
-            if line_type == LT.BEG_CONDA_ENV:
-                logging.info("Quitting parsing because of conda begin env within a pip block")
-                bad_parse = True
-                break
-            elif line_type == LT.BEG_PIP:
-                # nested redundant begin
-                logging.info("Quitting parsing because of pip begin within a pip block")
-                bad_parse = True
-                break
-            elif line_type == LT.END:
-                parser_state = PS.OUT
-                pip_block_valid.extend(collected_block)
-                collected_block = []
-            elif line_type == LT.TEXT:
-                collected_block.append(m.group('data') if m else '')
-    if parser_state != PS.OUT:
-        # stopped parsing, possibly after collecting valid blocks
-        bad_parse = True
-    if bad_parse:
-        logging.info("At least one code fence could not be parsed as part of a valid dependency block")
-    if verbose:
-        if conda_env_block_valid:
-            print("## Parsed the following text to use for environment.yml:\n")
-            print(textwrap.indent('\n'.join(conda_env_block_valid),'\t'))
-            print('')
-        if conda_spec_block_valid:
-            print("## Parsed the following text to use for conda_install_specs.txt:\n")
-            print(textwrap.indent('\n'.join(conda_spec_block_valid),'\t'))
-            print('')
-        if pip_block_valid:
-            print("## Parsed the following text to use for pip requirements.txt:\n")
-            print(textwrap.indent('\n'.join(pip_block_valid),'\t'))
-            print('')
-    conda_env_block_valid = '\n'.join(conda_env_block_valid) if conda_env_block_valid else ''
-    conda_spec_block_valid = '\n'.join(conda_spec_block_valid) if conda_spec_block_valid else ''
-    pip_block_valid   = '\n'.join(pip_block_valid) if pip_block_valid else ''
     hash = hashlib.md5()
-    hash.update(conda_env_block_valid.encode('utf-8'))
-    hash.update(conda_spec_block_valid.encode('utf-8'))
-    hash.update(pip_block_valid.encode('utf-8'))
-    return (hash.hexdigest(), pip_block_valid, conda_env_block_valid, conda_spec_block_valid)
+    hash.update(boxed_pip_block[0].encode('utf-8'))
+    hash.update(boxed_conda_env_block[0].encode('utf-8'))
+    hash.update(boxed_conda_spec_block[0].encode('utf-8'))
+    return (hash.hexdigest(), boxed_pip_block[0], boxed_conda_env_block[0], boxed_conda_spec_block[0])
 
+def tomlconfig_to_pip_conda(toml_config) -> tuple[str,str]:
+    "From a TOML dict, to (pip reqs, conda python spec)"
+    if 'requires-python' in toml_config:
+        conda_python_install_spec = f"python{toml_config['requires-python']}"
+    else:
+        conda_python_install_spec = ''
+    if 'dependencies' in toml_config:
+        pip_reqs = '\n'.join(toml_config['dependencies']) + '\n'
+    else:
+        pip_reqs = ''
+    return (pip_reqs,conda_python_install_spec)
+
+def parse_script_toml(toml_str) -> tuple[str,str]:
+    """
+    From script TOML text, to (pip_reqs,conda python spec).
+    
+    This parses the TOML fragment in a PEP723 metadata block where TYPE=script.
+    Uses a limited custom parser to neeed only Python 3.9.6 and zero deps.
+    """
+    toml_str = re.sub(r'#.*$', '', toml_str, flags=re.MULTILINE)
+    config = {}
+    requires_python_match = re.search(r'requires-python\s*=\s*"([^"]*)"', toml_str)
+    if requires_python_match:
+        config['requires-python'] = requires_python_match.group(1)
+    dependencies_match = re.search(r'dependencies\s*=\s*\[(.*?)\]', toml_str, re.DOTALL)
+    if dependencies_match:
+        dependencies_str = dependencies_match.group(1)
+        dependencies = re.findall(r'"([^"]*)"', dependencies_str)
+        config['dependencies'] = dependencies
+    return tomlconfig_to_pip_conda(config)    
 
 class Project(ABC):
     @staticmethod
@@ -343,13 +323,15 @@ class ProjectConda(Project):
                                   self.conda_specs,
                                   self.pip_requirements,
                                   log_level_for_verbose(self.verbose))
+    def run(self, args) -> NoReturn:
+        conda_run_script(self.interpreter,self.script,args,self.envdir)
+
 class ProjectNoDeps(Project):
     def exists(self): return True
     def create(self): return True
     @property
     def interpreter(self):
         return sys.executable
-
 
 def run_with_logging(command:Union[str,list],proj_dir,out_f,err_f,verbosity):
     '''
@@ -502,6 +484,30 @@ def run_script(interpreter, script, args) -> NoReturn:
     sys.stdout.flush()
     logging.info(f'os.execvp({interpreter}, [{interpreter},{script}] + {args})')
     os.execvp(interpreter, [interpreter,script] + args)
+
+def conda_run_script(interpreter, script, args, conda_env_dir) -> NoReturn:
+    logging.info(
+        f"using conda run to run {script} using {interpreter} with args: {args}"
+    )
+    logging.info(f'os.execvp({interpreter}, [{interpreter},{script}] + {args})')
+    # to workaround the conda bug https://github.com/conda/conda/issues/13639
+    should_use_wrapper = True
+    if should_use_wrapper:
+        workaround_path = os.path.join(conda_env_dir,'exec_script')
+        with open(workaround_path,'w') as f:
+            workaround_script = f"exec {interpreter} {script}"
+            for arg in args:
+                workaround_script += f" {arg}"
+            workaround_script += "\n"
+            logging.info(f'builiding script with contents: {workaround_script}')
+            logging.info(f'writing script to path: {workaround_path}')
+            f.write(workaround_script)
+        os.chmod(workaround_path, 0o755)
+        cmd = ["conda","run","-p", conda_env_dir, "--no-capture-output", workaround_path]
+    else:
+        cmd = ["conda","run","-p", conda_env_dir, "--no-capture-output", interpreter,script] + args
+    sys.stdout.flush()
+    os.execvp(cmd[0],cmd)
 
 #
 # venv operations
