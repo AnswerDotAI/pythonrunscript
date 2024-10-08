@@ -6,7 +6,7 @@
 # my dependencies and serve on port 8090
 #
 # ```requirements.txt
-# python-fasthtml
+# python-fasthtml>=0.6.9,<0.7
 # uvicorn>=0.29
 # python-multipart
 # sqlite-utils
@@ -17,10 +17,11 @@
 
 from dataclasses import dataclass
 from enum import Enum
-import copy
+from threading import Timer
+import webbrowser, sys, copy
 
 import uvicorn
-from fasthtml.fastapp import *
+from fasthtml.common import FastHTML, Div, P, Title, Main, Button, H1
 
 ####
 #### define game logic
@@ -121,7 +122,17 @@ def _():
     state = evolve_state(state, action)
     return make_state_div()
 
+port=8090
+
+def open_browser():
+    url = f"http://localhost:{port}"
+    print(f"Browsing to {url}")
+    webbrowser.open(url)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8090)
+    if len(sys.argv) > 1 and sys.argv[1].startswith("--b"):
+        Timer(1.5,open_browser).start()
+    else:
+        pass
+    uvicorn.run(app, host="0.0.0.0", port=port)
     
