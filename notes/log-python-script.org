@@ -1,5 +1,5 @@
 * Tasks
-** TODO make this pip-installable
+** DONE make this pip-installable
 https://python-packaging.readthedocs.io/en/latest/command-line-scripts.html
 ** TODO make it work on windows
 use asyncio instead of bash and tee?
@@ -346,7 +346,14 @@ summary of non-transparencies:
 ERROR conda.cli.main_run:execute(125): `conda run /Users/alexis/Library/Caches/pythonrunscript/60b45f611c8f43cc4df61e1bd5157fd8/condaenv/bin/python3 ./run_ffmpeg.py` failed. (See above for error)
 #+end_src
 
+** summary of results of work to be perfectly transparent to conda
 
+- scripts can now call conda-installed executable
+- worked around a known conda bug
+
+- one non-transparency, is that if pythonrunscript is used to run a
+  script in a conda environment, which exits with a nonzero exit code,
+  then conda will print some additional logging at exit time.
 
 
 ** [2024-10-07 Mon 15:43]
