@@ -1,90 +1,140 @@
 # !/usr/bin/env pythonrunscript
 # 
-# ```conda_install_specs.txt
-# python>=3.12.4
-# ```
+# /// pythonrunscript-conda-install-specs-txt
+# python>=3.11
+# ///
 #
-# ```requirements.txt
-# python-fasthtml>=0.0.8
+# /// pythonrunscript-requirements-txt
+# python-fasthtml>=0.0.8,<0.7
 # uvicorn>=0.29
 # python-multipart
-# ```
+# ///
 from fasthtml.common import *
-import uvicorn
+from hmac import compare_digest
+# required for sqlalchemy:
+# from fastsql import *
 
 db = database('data/utodos.db')
-todos,users = db.t.todos,db.t.users
-if todos not in db.t:
-    users.create(name=str, pwd=str, pk='name')
-    todos.create(id=int, title=str, done=bool, name=str, pk='id')
-Todo,User = todos.dataclass(),users.dataclass()
+# for sqlalchemy:
+# url = 'postgresql://'
+# db = Database(url)
+class User: name:str; pwd:str
+class Todo:
+    id:int; title:str; done:bool; name:str; details:str; priority:int
+    def __ft__(self):
+        ashow = A(self.title, hx_post=retr.rt(id=self.id), target_id='current-todo')
+        aedit = A('edit',     hx_post=edit.rt(id=self.id), target_id='current-todo')
+        dt = '✅ ' if self.done else ''
+        cts = (dt, ashow, ' | ', aedit, Hidden(id="id", value=self.id), Hidden(id="priority", value="0"))
+        return Li(*cts, id=f'todo-{self.id}')
 
-id_curr = 'current-todo'
-def tid(id): return f'todo-{id}'
+users = db.create(User, pk='name')
+todos = db.create(Todo)
 
-def lookup_user(u,p):
-    try: user = users[u]
-    except NotFoundError: user = users.insert(name=u, pwd=p)
-    return user.pwd==p
+login_redir = RedirectResponse('/login', status_code=303)
 
-css = Style(':root { --pico-font-size: 100%; }')
-authmw = user_pwd_auth(lookup_user, skip=[r'/favicon\.ico', r'/static/.*', r'.*\.css'])
-
-def before(auth):
+def before(req, sess):
+    auth = req.scope['auth'] = sess.get('auth', None)
+    if not auth: return login_redir
     todos.xtra(name=auth)
 
-app = FastHTML(hdrs=(picolink, css), middleware=authmw, before=before)
-rt = app.route
+def _not_found(req, exc): return Titled('Oh no!', Div('We could not find that page :('))
 
-@rt("/{fname:path}.{ext:static}")
-async def get(fname:str, ext:str): return FileResponse(f'{fname}.{ext}')
+hdrs=(
+        SortableJS('.sortable'),
+        MarkdownJS('.markdown'),
+)
 
-@patch
-def __xt__(self:Todo):
-    show = AX(self.title, f'/todos/{self.id}', id_curr)
-    edit = AX('edit',     f'/edit/{self.id}' , id_curr)
-    dt = ' (done)' if self.done else ''
-    return Li(show, dt, ' | ', edit, id=tid(self.id))
+bware = Beforeware(before, skip=[r'/favicon\.ico', r'/static/.*', r'.*\.js', r'.*\.css', '/login'])
+app,rt = fast_app(before=bware, live=True,
+                  exception_handlers={404: _not_found},
+                  hdrs=hdrs)
 
-def mk_input(**kw): return Input(id="new-title", name="title", placeholder="New Todo", **kw)
-def clr_details(): return Div(hx_swap_oob='innerHTML', id=id_curr)
+@app.get
+def login():
+    frm = Form(action='/login', method='post')(
+        Input(id='name', placeholder='Name'),
+        Input(id='pwd', type='password', placeholder='Password'),
+        Button('login'))
+    return Titled("Login", frm)
+
+@dataclass
+class Login: name:str; pwd:str
+
+@rt("/login")
+def post(login:Login, sess):
+    if not login.name or not login.pwd: return login_redir
+    try: u = users[login.name]
+    except NotFoundError: u = users.insert(login)
+    if not compare_digest(u.pwd.encode("utf-8"), login.pwd.encode("utf-8")): return login_redir
+    sess['auth'] = u.name
+    return RedirectResponse('/', status_code=303)
+
+@app.get("/logout")
+def logout(sess):
+    del sess['auth']
+    return login_redir
 
 @rt("/")
-async def get(request, auth):
-    add = Form(Group(mk_input(), Button("Add")),
-               hx_post="/", target_id='todo-list', hx_swap="beforeend")
-    card = Card(Ul(*todos(), id='todo-list'),
-                header=add, footer=Div(id=id_curr)),
-    title = 'Todo list'
-    top = Grid(H1(f"{auth}'s {title}"), Div(A('logout', href=basic_logout(request)), style='text-align: right'))
-    return Title(title), Main(top, card, cls='container')
+def get(auth):
+    title = f"{auth}'s Todo list"
+    cts = Container(
+        Grid(H1(title),
+            Div(style='text-align: right')(
+                A('logout', href='/logout')
+            )
+        ),
+        Card(
+            Ul(
+                Form(id='todo-list', cls='sortable', hx_post=reorder, hx_trigger="end")(
+                    *todos(order_by='priority')
+                )
+            ),
+            header=Form(hx_post=create, target_id='todo-list', hx_swap="afterbegin")(
+               Group(
+                    Input(id="new-title", name="title", placeholder="New Todo"),
+                    Button("Add")
+                )
+            ),
+            footer=Div(id='current-todo')
+        )
+    )
+    return Title(title), cts
 
-@rt("/todos/{id}")
-async def delete(id:int):
+@rt
+def reorder(id:list[int]):
+    for i,id_ in enumerate(id): todos.update(priority=i, id=id_)
+    return tuple(todos(order_by='priority'))
+
+@rt
+def create(todo:Todo):
+    new_inp = Input(id="new-title", name="title", placeholder="New Todo", hx_swap_oob='true')
+    return todos.insert(todo), new_inp
+
+@rt
+def remove(id:int):
     todos.delete(id)
-    return clr_details()
+    return clear('current-todo')
 
-@rt("/")
-async def post(todo:Todo):
-    return todos.insert(todo), mk_input(hx_swap_oob='true')
-
-@rt("/edit/{id}")
-async def get(id:int):
-    res = Form(Group(Input(id="title"), Button("Save")),
-        Hidden(id="id"), Checkbox(id="done", label='Done'),
-        hx_put="/", target_id=tid(id), id="edit")
+@rt
+def edit(id:int):
+    res = Form(hx_post=replace, target_id=f'todo-{id}', id="edit")(
+            Group(Input(id="title"), Button("Save")),
+            Hidden(id="id"), Hidden(priority="priority"),
+            Hidden(name="done"), CheckboxX(id="done", label='Done'),
+            Textarea(id="details", name="details", rows=10))
     return fill_form(res, todos[id])
 
-@rt("/")
-async def put(todo: Todo):
-    return todos.upsert(todo), clr_details()
+@rt
+def replace(todo: Todo): return todos.update(todo), clear('current-todo')
 
-@rt("/todos/{id}")
-async def get(id:int):
+@rt
+def retr(id:int):
     todo = todos[id]
-    btn = Button('delete', hx_delete=f'/todos/{todo.id}',
-                 target_id=tid(todo.id), hx_swap="outerHTML")
-    return Div(Div(todo.title), btn)
+    btn = Button('delete',
+                 name='id', value=id, target_id=f'todo-{todo.id}',
+                 hx_post=remove, hx_swap="outerHTML")
+    return Div(H2(todo.title), Div(todo.details, cls="markdown"), btn)
 
-if __name__ == '__main__': uvicorn.run("main:app", host='0.0.0.0', port=int(os.getenv("PORT", default=5001)))
+serve()
 

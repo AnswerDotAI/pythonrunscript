@@ -1,7 +1,7 @@
 #!/usr/bin/env pythonrunscript
-# ```requirements.txt
-# python-fasthtml>=0.2.3
-# ```
+# /// pythonrunscript-requirements-txt
+# python-fasthtml>=0.4.5,<0.7
+# ///
 from fasthtml.common import *
 
 app,rt = fast_app(hdrs=[HighlightJS()])
