@@ -360,11 +360,15 @@ ERROR conda.cli.main_run:execute(125): `conda run /Users/alexis/Library/Caches/p
 
 next steps:
 
-- [ ] re-run examples as tests
+- [X] re-run examples as tests
 - [ ] add meatier examples?
 - [X] update versioning metadata
 - [x] add versioning to CLT  
-- [ ] copy script to binary
+- [X] copy script to binary
 - [ ] deploy to pypi
 
-  
+** [2024-10-07 Mon 19:02] plan to use twine to upload
+
+poetry build
+poetry publish
+
