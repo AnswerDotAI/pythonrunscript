@@ -5,7 +5,7 @@
 # Just run me with pythonrunscript, and I will auto-install
 # my dependencies and serve on port 8090
 #
-# ```requirements.txt
+# /// pythonrunscript-requirements-txt
 # python-fasthtml>=0.6.9,<0.7
 # uvicorn>=0.29
 # python-multipart
@@ -13,7 +13,7 @@
 # requests
 # replicate
 # pillow
-# ```
+# ///
 
 from dataclasses import dataclass
 from enum import Enum
