@@ -12,7 +12,7 @@ pythonrunscript lets you declare your script’s dependencies in the script itse
 
 This is in order to let you build and use scripts that *just run*, with no environment setup.
 
-To declare your script’s pip dependencies, add a *pip requirements block* to your script’s comments. This is a comment block which embeds a normal pip requirements.txt file into script, by using Python's syntax for [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/#inline-script-metadata). Here below, the block declares a dependency on the pip package `tqdm`.
+To declare your script’s pip dependencies, add a *pip requirements block*. This is a block of comments which embeds a pip requirements.txt file into your script, using Python's official syntax for [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/#inline-script-metadata). For example, the script below includes a pip requirement block which defines a one-line requirements.txt file, declaring a dependency on version 4.66.4 of the pip package `tqdm`.
 
 ``` python
 #!/usr/bin/env pythonrunscript
@@ -30,13 +30,13 @@ for i in tqdm(range(10000)):
 print("Phew. That was fun!")
 ```
 
-The first time you run this script, pythonrunscript will extract the embedded requirements.txt file, create an isolated environment in a cache directory, install its dependencies, and run the script from that environment. In later runs, it will just re-use that environment. To create the environment it uses venv, which is built into python, so the only requirement to use pythonrunscript is that python itself is already installed.
+The first time you run this script, pythonrunscript will extract the embedded requirements.txt file, create an isolated environment in a cache directory, install the dependencies listed in the requirements.txt, and run the script from that environment. In later runs, it will just re-use that environment. To create the environment it uses venv, which is built into python, so the only requirement to use pythonrunscript is that python itself is already installed.
 
 To run your script, call it with `pythonrunscript hello.py`.
 
-Or, to run your script directly by doing `./hello.py`, change your script’s first line, the shebang line, to the following: `#!/usr/bin/env pythonrunscript`.
+Alternatively, to run your script directly by doing `./hello.py`, change your script’s first line, the shebang line, to the following: `#!/usr/bin/env pythonrunscript`. This will have no affect on execution, even if you remove the inline metadata blcoks. In that case, pythonrunscript will simply pass it to python3.
 
-How does this affect normal execution? It doesn't. If you script doesn't have a pip requirements.txt block, pythonrunscript will simply pass it to python3 for execution as usual. And if you run the script with `python3 hello.py`, then these special comments are ignored like all other comments. The upshot is that if you modify a script to be run by pythonrunscript, it can still be run as usual 
+And likewise, if you run the script with `python3 hello.py`, then these special comments are ignored like all other comments. The upshot is that if you modify a script to be run by pythonrunscript, it can still be run as usual by someone who has never heard of pythonrunscript.
 
 ## Installation and Requirements
 
@@ -51,13 +51,13 @@ Here are two ways to install pythonrunscript:
 
 Run pythonrunscript in `--dry-run` mode to get a preview of how it parses your file and the actions it *would* take.
 
-Run with `--verbose` to hear copious commentary, and to see all output of subprocess commands. Normally, pythonrunscript only prints in case of an installation error. Under all circumstances it saves all generated output in a logs directory, as well as saving an `environment-resolved.yml` and a `pip-list.txt` that reflect the exact state of the environment after creation. These files are saved in the script’s project directory, in the cache, which is revealed by running with the `--show-cache` command. Running with `--clean-cache` erases all cached directories (actually, it moves them to the OS’s temporary directory for automatic disposal).
+Run with `--verbose` to hear copious commentary, and to see all output of subprocess commands. Normally, pythonrunscript only prints logging in case of an installation error. It always saves all generated output in a logs directory, as well as saving an `environment-resolved.yml` and a `pip-list.txt` which reflect the exact state of the environment after creation. These files are saved in the script’s project directory, in the cache, which is revealed by running with the `--show-cache` command. Running with `--clean-cache` moves all cached directories to the OS’s temporary directory for automatic disposal.
 
 ## What about conda dependencies?
 
 Some popular dependencies, like [cudatoolkit](https://developer.nvidia.com/cuda-toolkit), cannot be installed by pip but need conda.
 
-To specify conda dependencies, you must add a *conda environment.yml block* or a *conda_install_specs_.txt block*. You may use this instead of, or in addition to, a pip requirements.txt block. They use two other types of fenced comment blocks. The environment block is intoduced by ```` /// pythonrunscript-environment-yml ```` and it should contain an environment.yml file verbatim.
+To specify conda dependencies, you must add a *conda environment.yml block* or a *conda_install_specs_.txt block*. You may use this instead of, or in addition to, a pip requirements.txt block. They use two other types of inline metadata. The environment block is intoduced by ```` /// pythonrunscript-environment-yml ```` and it should contain an environment.yml file verbatim.
 
 The install spec block is introduced by ```` /// pythonrunscript-conda-install-specs-txt ```` block, and it should introduce conda install specs. A conda install spec is simply the string passed to the `conda install` command. Conda documents the [exact syntax for a conda install spec](https://conda.io/projects/conda/en/latest/user-guide/concepts/pkg-search.html), which only requires naming the conda package, but also allows specifying the version, the channel, or specific builds.
 
