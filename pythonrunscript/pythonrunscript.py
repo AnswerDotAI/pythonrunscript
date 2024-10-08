@@ -8,10 +8,13 @@ from typing import NoReturn, Union
 logging.basicConfig(level=logging.WARNING)
 Log = Enum('Log', ['SILENT','ERRORS','VERBOSE'])
 
+version_str = "0.2.0 (2024-10-07)"
+
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.description='Runs a script, installing its dependencies in a cached, isolated environment'
     parser.add_argument('--dry-run',    action='store_true', help='report what pythonrunscript would do, without writing any files')
+    parser.add_argument('--version',    action='store_true', help='prints current version')
     parser.add_argument('--verbose',    action='store_true', help='comments on actions and prints all outputs and errors')
     parser.add_argument('--show-cache', action='store_true', help='print the cache directory of script environments')
     parser.add_argument('--clean-cache', action='store_true', help='purges all pythonrunscript environments')
@@ -60,6 +63,9 @@ def main():
         print(f"I am being interpreted by Python version:\n{sys.version}")  # pyright: ignore
         print("But I need python version 3.9.6 or higher.\nAborting.") # pyright: ignore
         exit(1)         # pyright: ignore
+    elif args.version:
+        print(f"pythonrunscript {version_str}")
+        exit(0)
     elif are_dependencies_missing():
         print(f"I am being run on the platform {platform.system()} and")
         print("I cannot find the required external commands bash and tee, so")
