@@ -1,7 +1,6 @@
 #!/usr/bin/env pythonrunscript
 # ```conda_install_specs.txt
 # python=3.10
-# ffmpeg
 # ```
 
 # if pythonrunscript works properly,

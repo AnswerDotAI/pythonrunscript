@@ -418,10 +418,13 @@ def install_pip_requirements(proj_dir, pip_requirements, interpreter, log_level:
                                "pip_install.out","pip_install.err",
                                log_level)
     if success:
-        with open(os.path.join(proj_dir,"piplist.txt"),"w") as f:
+        piplist_txt=os.path.join(proj_dir,"piplist.txt")
+        with open(piplist_txt,"w") as f:
             subprocess.run(shlex.join([interpreter, "-m", "pip", "list"]),
                            stdout=f, stderr=f,
                            shell=True,executable=shutil.which('bash'))
+        if log_level == Log.VERBOSE:
+            print(open(piplist_txt,"r").read())
         return True
     else:
         print("## Errors trying to install pip requirements",file=sys.stderr)
@@ -464,12 +467,15 @@ def setup_conda_prefix(proj_dir:str, condaprefix_dir:str,
     else:
         assert True, "unreachable. "
     if success:
-        with open(os.path.join(proj_dir,"exported-environment.yml"),"w") as f:
+        exported_environment_yml = os.path.join(proj_dir,"exported-environment.yml")
+        with open(exported_environment_yml,"w") as f:
             cmd = ["conda","env","export","--quiet", "--prefix",condaprefix_dir]
             logging.info(f"exporting env with {cmd}")
             subprocess.run(shlex.join(cmd),
                            stdout=f, stderr=f,
                            shell=True,executable=shutil.which('bash'))
+        if log_level == Log.VERBOSE:
+            print(open(exported_environment_yml,"r").read())
     else:
         print("## Errors trying to install conda dependencies",file=sys.stderr)
         return False
